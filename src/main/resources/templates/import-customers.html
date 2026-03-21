@@ -9,9 +9,10 @@
 <div class="simple-page">
     <div class="simple-card">
         <div class="page-title">客户 Excel 导入</div>
-        <p>按任务单字段顺序上传客户数据，系统将按 customer_key 聚合客户主档，并逐行写入客户介质表。</p>
+        <p>按开发文档定义的任务单字段顺序导入客户主档和介质明细；未上传文件时，默认读取系统配置路径中的 Excel。</p>
+        <p>默认导入路径：<code th:text="${defaultImportPath}"></code></p>
         <form th:action="@{/import/customers}" method="post" enctype="multipart/form-data">
-            <input type="file" name="file" accept=".xlsx,.xls" required>
+            <input type="file" name="file" accept=".xlsx,.xls">
             <button class="primary-btn" type="submit">开始导入</button>
             <a class="ghost-btn" th:href="@{/dashboard}">返回首页</a>
         </form>

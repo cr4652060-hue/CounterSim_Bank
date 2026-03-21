@@ -1,13 +1,17 @@
 package com.countersim.bank.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.countersim.bank.config.CustomerImportProperties;
 import com.countersim.bank.domain.entity.Customer;
 import com.countersim.bank.domain.entity.CustomerMedia;
 import com.countersim.bank.mapper.CustomerMapper;
 import com.countersim.bank.mapper.CustomerMediaMapper;
 import com.countersim.bank.service.ExcelImportService;
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -20,8 +24,11 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -30,7 +37,23 @@ public class ExcelImportServiceImpl implements ExcelImportService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CustomerMapper customerMapper;
     private final CustomerMediaMapper customerMediaMapper;
+    private final CustomerImportProperties customerImportProperties;
+    private final ResourceLoader resourceLoader;
     private final DataFormatter dataFormatter = new DataFormatter();
+
+    @Override
+    @Transactional
+    public int importCustomers() {
+        String location = customerImportProperties.getCustomerFile();
+        if (!StringUtils.hasText(location)) {
+            throw new IllegalStateException("未配置客户导入文件路径，请检查 counter-sim.import.customer-file。");
+        }
+        try (InputStream inputStream = openInputStream(location)) {
+            return importCustomers(inputStream);
+        } catch (IOException ex) {
+            throw new IllegalStateException("读取客户导入文件失败: " + location, ex);
+        }
+    }
 
     @Override
     @Transactional
@@ -55,6 +78,21 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         } catch (Exception ex) {
             throw new IllegalStateException("导入 Excel 失败: " + ex.getMessage(), ex);
         }
+    }
+
+    private InputStream openInputStream(String location) throws IOException {
+        if (location.startsWith("classpath:") || location.startsWith("file:")) {
+            Resource resource = resourceLoader.getResource(location);
+            if (!resource.exists()) {
+                throw new IOException("文件不存在: " + location);
+            }
+            return resource.getInputStream();
+        }
+        Path path = Path.of(location);
+        if (!Files.exists(path)) {
+            throw new IOException("文件不存在: " + location);
+        }
+        return Files.newInputStream(path);
     }
 
     private void upsertCustomer(Row row) {

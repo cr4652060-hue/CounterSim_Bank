@@ -19,8 +19,12 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: auto
+server:
+  port: 18099
 
 counter-sim:
+  import:
+    customer-file: classpath:import/customers.xlsx
   avatar:
     customer: /images/customer-avatar.png
     proxy: /images/proxy-avatar.png
