@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: countersim-bank
+  datasource:
+    url: jdbc:mysql://localhost:3306/countersim_bank?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  thymeleaf:
+    cache: false
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto
+
+counter-sim:
+  avatar:
+    customer: /images/customer-avatar.png
+    proxy: /images/proxy-avatar.png

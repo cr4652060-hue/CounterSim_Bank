@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>客户 Excel 导入</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="simple-page">
+    <div class="simple-card">
+        <div class="page-title">客户 Excel 导入</div>
+        <p>按任务单字段顺序上传客户数据，系统将按 customer_key 聚合客户主档，并逐行写入客户介质表。</p>
+        <form th:action="@{/import/customers}" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" accept=".xlsx,.xls" required>
+            <button class="primary-btn" type="submit">开始导入</button>
+            <a class="ghost-btn" th:href="@{/dashboard}">返回首页</a>
+        </form>
+        <div class="success" th:if="${message}" th:text="${message}"></div>
+        <div class="error" th:if="${error}" th:text="${error}"></div>
+    </div>
+</div>
+</body>
+</html>

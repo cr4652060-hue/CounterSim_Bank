@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>0055 柜员库箱查询</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<div class="simple-page">
+    <div class="simple-card wide-card">
+        <div class="page-title">0055 - 柜员库箱查询</div>
+        <form class="query-row" method="get" th:action="@{/inventory/0055}">
+            <label>查询类型</label>
+            <select name="type">
+                <option value="cash" th:selected="${type == 'cash'}">1-现金/现钞</option>
+                <option value="voucher" th:selected="${type == 'voucher'}">2-凭证</option>
+            </select>
+            <button class="primary-btn" type="submit">查询</button>
+            <a class="ghost-btn" th:href="@{/dashboard}">退出</a>
+        </form>
+
+        <table class="grid-table" th:if="${result != null and type == 'cash'}">
+            <thead>
+            <tr>
+                <th>柜员号</th><th>当前库箱余额</th><th>授权阈值</th><th>超库阈值</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td th:text="${result.tellerCode}"></td>
+                <td th:text="${result.currentCash}"></td>
+                <td th:text="${result.authThreshold}"></td>
+                <td th:text="${result.overflowThreshold}"></td>
+            </tr>
+            </tbody>
+        </table>
+
+        <table class="grid-table" th:if="${result != null and type == 'voucher'}">
+            <thead>
+            <tr>
+                <th>凭证名称</th><th>起始号</th><th>终止号</th><th>库存数量</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <td th:text="${result.voucherType}"></td>
+                <td th:text="${result.startNo}"></td>
+                <td th:text="${result.endNo}"></td>
+                <td th:text="${result.remainCount}"></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+</body>
+</html>
