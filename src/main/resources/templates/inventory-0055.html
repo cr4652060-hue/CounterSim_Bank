@@ -5,18 +5,22 @@
     <title>0055 柜员库箱查询</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
 </head>
-<body>
-<div class="simple-page">
-    <div class="simple-card wide-card">
-        <div class="page-title">0055 - 柜员库箱查询</div>
-        <form class="query-row" method="get" th:action="@{/inventory/0055}">
+<body th:class="${embedded} ? 'embedded-body' : null">
+<div th:class="${embedded} ? 'embedded-transaction-shell' : 'simple-page'">
+    <div th:class="${embedded} ? 'embedded-transaction-card inventory-embed-card' : 'simple-card wide-card'">
+        <div class="page-title transaction-title-row">
+            <span>0055 - 柜员库箱查询</span>
+            <span class="inventory-subtitle">支持现金/凭证双视图查询</span>
+        </div>
+        <form class="query-row inventory-query-row" method="get" th:action="@{/inventory/0055}">
+            <input type="hidden" name="embedded" th:value="${embedded}">
             <label>查询类型</label>
             <select name="type">
                 <option value="cash" th:selected="${type == 'cash'}">1-现金/现钞</option>
                 <option value="voucher" th:selected="${type == 'voucher'}">2-凭证</option>
             </select>
             <button class="primary-btn" type="submit">查询</button>
-            <a class="ghost-btn" th:href="@{/dashboard}">退出</a>
+            <a class="ghost-btn" th:if="${!embedded}" th:href="@{/dashboard}">退出</a>
         </form>
 
         <table class="grid-table" th:if="${result != null and type == 'cash'}">

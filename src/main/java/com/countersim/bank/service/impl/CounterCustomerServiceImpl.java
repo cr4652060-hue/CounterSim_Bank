@@ -1,7 +1,7 @@
 package com.countersim.bank.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.countersim.bank.domain.dto.CounterCustomerMediumView;
 import com.countersim.bank.domain.dto.CounterCustomerView;
 import com.countersim.bank.domain.entity.CounterCustomer;
 import com.countersim.bank.domain.entity.Customer;
@@ -100,6 +100,20 @@ public class CounterCustomerServiceImpl implements CounterCustomerService {
                 .sorted(Comparator.comparing(CustomerMedia::getMediumType).thenComparing(CustomerMedia::getMediumNo))
                 .map(item -> item.getMediumType() + " / " + item.getMediumNo())
                 .toList();
+        List<CounterCustomerMediumView> detailList = mediaList.stream()
+                .sorted(Comparator.comparing(CustomerMedia::getMediumType).thenComparing(CustomerMedia::getMediumNo))
+                .map(item -> CounterCustomerMediumView.builder()
+                        .accountCategory(item.getAccountCategory())
+                        .mediumType(item.getMediumType())
+                        .mediumSubType(item.getMediumSubType())
+                        .mediumNo(item.getMediumNo())
+                        .customerAccountNo(item.getCustomerAccountNo())
+                        .currency(item.getCurrency())
+                        .balanceAmount(item.getBalanceAmount())
+                        .depositType(item.getDepositType())
+                        .mediaStatus(item.getMediaStatus())
+                        .build())
+                .toList();
         return Optional.of(CounterCustomerView.builder()
                 .arrived(true)
                 .customerKey(customer.getCustomerKey())
@@ -107,7 +121,11 @@ public class CounterCustomerServiceImpl implements CounterCustomerService {
                 .mobile(customer.getMobile())
                 .mediumCount(mediaList.size())
                 .accountTypeCount(accountTypes.size())
+                .idType(customer.getIdType())
+                .idNo(customer.getIdNo())
+                .avatarPath(customer.getAvatarPath())
                 .mediaLabels(labels)
+                .mediaDetails(detailList)
                 .build());
     }
 }

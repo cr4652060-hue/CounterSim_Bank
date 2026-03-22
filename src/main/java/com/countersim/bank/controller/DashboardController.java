@@ -1,5 +1,7 @@
 package com.countersim.bank.controller;
 
+import com.countersim.bank.domain.dto.CounterCustomerSessionState;
+import com.countersim.bank.service.CounterCustomerScenarioService;
 import com.countersim.bank.service.CounterCustomerService;
 import com.countersim.bank.service.TellerService;
 import jakarta.servlet.http.HttpSession;
@@ -14,6 +16,7 @@ public class DashboardController {
 
     private final TellerService tellerService;
     private final CounterCustomerService counterCustomerService;
+    private final CounterCustomerScenarioService counterCustomerScenarioService;
 
     @GetMapping("/dashboard")
     public String dashboard(HttpSession session, Model model) {
@@ -22,7 +25,15 @@ public class DashboardController {
             return "redirect:/login";
         }
         tellerService.findByCode(tellerCode).ifPresent(teller -> model.addAttribute("teller", teller));
-        counterCustomerService.getCurrentCustomer(tellerCode).ifPresent(view -> model.addAttribute("counterCustomer", view));
+
+        CounterCustomerSessionState state = (CounterCustomerSessionState) session.getAttribute(CounterCustomerController.SESSION_STATE_KEY);
+        if (state == null) {
+            state = counterCustomerService.getCurrentCustomer(tellerCode)
+                    .map(counterCustomerScenarioService::buildArrivedState)
+                    .orElse(counterCustomerScenarioService.emptyState());
+            session.setAttribute(CounterCustomerController.SESSION_STATE_KEY, state);
+        }
+        model.addAttribute("counterCustomerState", state);
         return "dashboard";
     }
 }

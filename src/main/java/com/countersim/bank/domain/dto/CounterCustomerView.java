@@ -13,5 +13,9 @@ public class CounterCustomerView {
     private String mobile;
     private int mediumCount;
     private int accountTypeCount;
+    private String idType;
+    private String idNo;
+    private String avatarPath;
     private List<String> mediaLabels;
+    private List<CounterCustomerMediumView> mediaDetails;
 }

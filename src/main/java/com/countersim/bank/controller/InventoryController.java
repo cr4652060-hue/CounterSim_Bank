@@ -16,6 +16,7 @@ public class InventoryController {
 
     @GetMapping("/inventory/0055")
     public String inventoryPage(@RequestParam(defaultValue = "cash") String type,
+                                @RequestParam(defaultValue = "false") boolean embedded,
                                 HttpSession session,
                                 Model model) {
         String tellerCode = (String) session.getAttribute("tellerCode");
@@ -23,6 +24,7 @@ public class InventoryController {
             return "redirect:/login";
         }
         model.addAttribute("type", type);
+        model.addAttribute("embedded", embedded);
         if ("voucher".equals(type)) {
             inventoryService.queryVoucher(tellerCode).ifPresent(result -> model.addAttribute("result", result));
         } else {
