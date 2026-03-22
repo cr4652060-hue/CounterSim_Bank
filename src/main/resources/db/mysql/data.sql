@@ -36,7 +36,11 @@ INSERT INTO t_teller (teller_code, teller_name, avatar_path, current_cash, auth_
                                                                                                                                                    ('20', '20号柜员', '/images/teller-20.png', 140000.00, 300000.00, 400000.00, 'ACTIVE', NOW(), NOW());
 
 INSERT INTO t_teller_inventory (teller_code, voucher_type, start_no, end_no, total_count, remain_count, used_count, updated_at)
-SELECT teller_code, 'ordinary_cd', CONCAT('079', LPAD(1, 7, '0')), CONCAT('079', LPAD(100, 7, '0')), 100, 100, 0, NOW()
+SELECT teller_code, 'ordinary_cd', CONCAT('079', LPAD(CAST(teller_code AS UNSIGNED), 2, '0'), '00001'), CONCAT('079', LPAD(CAST(teller_code AS UNSIGNED), 2, '0'), '00100'), 100, 100, 0, NOW()
+FROM t_teller;
+
+INSERT INTO t_teller_inventory (teller_code, voucher_type, start_no, end_no, total_count, remain_count, used_count, updated_at)
+SELECT teller_code, 'passbook', CONCAT('2219', LPAD(CAST(teller_code AS UNSIGNED), 2, '0'), '00001'), CONCAT('2219', LPAD(CAST(teller_code AS UNSIGNED), 2, '0'), '00100'), 100, 100, 0, NOW()
 FROM t_teller;
 
 INSERT INTO t_customer (customer_key, customer_name, id_type, id_no, mobile, avatar_path, created_at, updated_at) VALUES

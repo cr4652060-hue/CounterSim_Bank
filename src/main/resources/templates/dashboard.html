@@ -7,90 +7,100 @@
 </head>
 <body>
 <div class="app-shell desk-shell">
+    <header class="top-frame-bar">
+        <div class="frame-caption">柜面服务平台</div>
+        <div class="frame-actions">— □ ×</div>
+    </header>
+
     <header class="top-bar desk-top-bar">
-        <div class="brand-lockup">
-            <div class="logo">山东农村商业银行</div>
-            <div class="brand-subline">RURAL COMMERCIAL BANK OF SHANDONG · 柜面服务平台</div>
+        <div class="brand-lockup brand-lockup-bank">
+            <div class="brand-emblem">鲁</div>
+            <div class="brand-copy">
+                <div class="logo">山东农村商业银行</div>
+                <div class="brand-subline">RURAL COMMERCIAL BANK OF SHANDONG</div>
+            </div>
         </div>
-        <nav class="top-nav">
+        <nav class="top-nav top-nav-bank">
             <span>任务中心</span>
             <span>消息中心</span>
             <span>帮助中心</span>
             <span>工具中心</span>
             <span>其他系统</span>
         </nav>
-        <div class="trade-search-box" id="trade-search-box">
-            <label class="search-label" for="trade-search-input">交易码</label>
-            <input id="trade-search-input" type="text" autocomplete="off" placeholder="输入交易码或中文名称检索">
-            <div class="trade-search-results hidden" id="trade-search-results"></div>
-        </div>
-        <div class="avatar-menu teller-menu">
-            <div class="teller-pill">
-                <span class="teller-pill-label">当前柜员</span>
-                <span class="teller-pill-name" th:text="${teller.tellerName}"></span>
+        <div class="top-utility-area">
+            <div class="trade-search-box bank-search-box" id="trade-search-box">
+                <input id="trade-search-input" type="text" autocomplete="off" placeholder="交易码">
+                <div class="trade-search-results hidden" id="trade-search-results"></div>
             </div>
-            <div class="avatar-circle" th:text="${teller.tellerCode}"></div>
-            <form th:action="@{/logout}" method="post"><button type="submit" class="ghost-btn slim-btn">退出</button></form>
+            <div class="top-utility-icons">
+                <span class="utility-icon">🔒</span>
+            </div>
+            <div class="avatar-menu teller-menu bank-teller-menu">
+                <div class="teller-identity">
+                    <div class="teller-code" th:text="${teller.tellerCode}"></div>
+                    <div class="teller-name" th:text="${teller.tellerName}"></div>
+                </div>
+                <form th:action="@{/logout}" method="post" class="top-exit-form">
+                    <button type="submit" class="avatar-circle avatar-circle-lite">退</button>
+                </form>
+            </div>
         </div>
     </header>
 
-    <div class="desk-layout">
-        <aside class="desk-sidebar">
-            <section class="sidebar-card sidebar-profile-card">
-                <div class="sidebar-title">柜面操作区</div>
-                <div class="sidebar-subtitle" th:text="|${teller.tellerName} / 柜员号 ${teller.tellerCode}|"></div>
-                <div class="sidebar-op-list">
-                    <button type="button" class="sidebar-op-btn">暂存</button>
-                    <button type="button" class="sidebar-op-btn">预约</button>
-                    <button type="button" class="sidebar-op-btn">呼叫大堂</button>
-                    <button type="button" class="sidebar-op-btn">呼叫主管</button>
-                    <form th:action="@{/logout}" method="post" class="sidebar-op-form">
-                        <button type="submit" class="sidebar-op-btn danger">退出</button>
-                    </form>
+    <div class="desk-layout bank-layout">
+        <aside class="desk-sidebar bank-sidebar">
+            <section class="sidebar-panel queue-panel">
+                <div class="queue-panel-main">
+                    <div class="queue-metrics">
+                        <div><span>排队号:</span><strong>--</strong></div>
+                        <div><span>等待人数:</span><strong>3</strong></div>
+                        <div><span>窗口号:</span><strong th:text="${teller.tellerCode}"></strong></div>
+                        <div><span>状态:</span><strong>未签到</strong></div>
+                    </div>
+                    <div class="queue-primary-actions">
+                        <button type="button" class="counter-mini-btn wide">签到</button>
+                        <button type="button" class="counter-mini-btn wide">暂停</button>
+                        <button type="button" class="counter-mini-btn wide">评价</button>
+                    </div>
+                </div>
+                <div class="queue-side-actions">
+                    <button type="button" class="counter-mini-btn">顺呼</button>
+                    <button type="button" class="counter-mini-btn">重呼</button>
+                    <button type="button" class="counter-mini-btn">呼叫大堂</button>
+                    <button type="button" class="counter-mini-btn">呼叫主管</button>
                 </div>
             </section>
 
-            <section class="sidebar-card quick-entry-card">
-                <div class="sidebar-title">培训快捷入口</div>
-                <div class="sidebar-list">
-                    <button type="button" class="sidebar-link-btn" data-open-trade="0055">0055 柜员库箱查询</button>
-                    <button type="button" class="sidebar-link-btn" data-open-trade="3900">3900 联网核查</button>
-                    <button type="button" class="sidebar-link-btn" data-open-trade="1061">1061 活期续存</button>
-                    <button type="button" class="sidebar-link-btn" data-open-trade="1062">1062 现金支取</button>
-                    <button type="button" class="sidebar-link-btn" data-open-trade="1651">1651 定期开户</button>
-                    <button type="button" class="sidebar-link-btn" data-open-trade="1657">1657 定期支取</button>
-                    <a class="sidebar-link-btn secondary" th:href="@{/import/customers}">客户 Excel 导入</a>
-                </div>
+            <section class="sidebar-panel info-panel">
+                <div class="panel-caption">客户信息区</div>
+                <div class="panel-empty-body"></div>
             </section>
 
-            <section class="sidebar-card quick-hint-card">
-                <div class="sidebar-title">当前工作提示</div>
-                <ul class="hint-list">
-                    <li>先通过右上角交易码检索打开业务标签。</li>
-                    <li>同一交易本轮只保留一个打开标签。</li>
-                    <li>客户概要信息仅在交易页模拟带出后显示。</li>
-                    <li>Excel 导入入口保持独立，不进入交易标签。</li>
-                </ul>
+            <section class="sidebar-panel info-panel filler-panel">
+                <div class="panel-caption">其他信息</div>
+                <div class="panel-empty-body"></div>
             </section>
         </aside>
 
-        <main class="desk-workspace">
-            <section class="desk-tabs-section">
-                <div class="desk-tabs-header">
-                    <div class="desk-tabs-title">交易工作区</div>
-                    <div class="desk-tabs-note" id="desk-tabs-note">未打开交易时，工作区保持待命状态。</div>
-                </div>
-                <div class="trade-tab-strip" id="trade-tab-strip"></div>
-                <div class="trade-stage" id="trade-stage"></div>
+        <main class="desk-workspace bank-workspace">
+            <section class="desk-tabs-section bank-workspace-shell">
+                <div class="trade-tab-strip bank-tab-strip" id="trade-tab-strip"></div>
+                <div class="trade-stage bank-trade-stage" id="trade-stage"></div>
             </section>
         </main>
     </div>
+
+    <footer class="desk-status-bar">
+        <div>日期: 2026-03-22</div>
+        <div>库箱号: 106</div>
+        <div th:text="|柜员号: ${teller.tellerCode}|"></div>
+    </footer>
 </div>
 
-<div class="floating-customer-card" id="floating-customer-card">
-    <div class="floating-card-header" id="floating-card-header">
+<div class="floating-customer-card bank-customer-card" id="floating-customer-card">
+    <div class="floating-card-header bank-customer-header" id="floating-card-header">
         <div>
-            <div class="floating-card-title">客户到达提示</div>
+            <div class="floating-card-title">客户提示</div>
             <div class="floating-card-status" id="floating-card-status">当前无客户</div>
         </div>
         <button type="button" class="card-min-btn" id="customer-card-toggle">—</button>
@@ -107,12 +117,12 @@
 <script>
     (() => {
         const TRADE_DEFINITIONS = [
-            { code: '0055', name: '柜员库箱查询', keywords: ['0055', '库箱', '柜员库箱', '库存', '现金', '凭证'], kind: 'iframe', src: '/inventory/0055?embedded=true' },
-            { code: '3900', name: '联网核查', keywords: ['3900', '联网核查', '核查', '身份核查'], kind: 'placeholder', theme: '核验' },
-            { code: '1061', name: '个人活期存款续存', keywords: ['1061', '存款', '续存', '活期', '存钱'], kind: 'placeholder', theme: '现金存入' },
-            { code: '1062', name: '个人活期存款现金支取', keywords: ['1062', '取款', '支取', '活期', '取钱'], kind: 'placeholder', theme: '现金支取' },
-            { code: '1651', name: '个人定期存款开户', keywords: ['1651', '定期开户', '开立存单', '存单开户', '定期'], kind: 'placeholder', theme: '存单开立' },
-            { code: '1657', name: '个人定期存款支取', keywords: ['1657', '定期支取', '取存单', '存单支取', '定期'], kind: 'placeholder', theme: '存单支取' }
+            { code: '0055', name: '柜员库箱查询', keywords: ['0055', '库箱', '柜员库箱', '库存', '凭证'], kind: 'iframe', src: '/inventory/0055?embedded=true' },
+            { code: '3900', name: '联网核查', keywords: ['3900', '联网核查', '核查'], kind: 'form', theme: '联网核查' },
+            { code: '1061', name: '个人活期存款续存', keywords: ['1061', '续存', '活期', '存款'], kind: 'form', theme: '个人活期存款续存' },
+            { code: '1062', name: '个人活期存款现金支取', keywords: ['1062', '支取', '取款', '活期'], kind: 'form', theme: '个人活期存款现金支取' },
+            { code: '1651', name: '个人定期存款开户', keywords: ['1651', '定期开户', '存单开户'], kind: 'form', theme: '个人定期存款开户' },
+            { code: '1657', name: '个人定期存款支取', keywords: ['1657', '定期支取', '存单支取'], kind: 'form', theme: '个人定期存款支取' }
         ];
 
         const STORAGE_KEYS = {
@@ -130,11 +140,11 @@
             activeTabId: null
         };
 
+        const searchBox = document.getElementById('trade-search-box');
         const searchInput = document.getElementById('trade-search-input');
         const searchResults = document.getElementById('trade-search-results');
         const tabStrip = document.getElementById('trade-tab-strip');
         const tradeStage = document.getElementById('trade-stage');
-        const tabsNote = document.getElementById('desk-tabs-note');
         const floatingCard = document.getElementById('floating-customer-card');
         const floatingCardBody = document.getElementById('floating-card-body');
         const floatingCardStatus = document.getElementById('floating-card-status');
@@ -144,7 +154,6 @@
         hydrateTabs();
         restoreCardPosition();
         bindSearch();
-        bindQuickActions();
         bindCardDrag();
         renderTabs();
         renderCustomerCard();
@@ -163,7 +172,7 @@
             state.tabs = storedTabs
                 .map(item => {
                     const definition = getTradeDefinition(item.code);
-                    return definition ? { ...item, ...definition, id: item.id || item.code } : null;
+                    return definition ? { ...definition, id: item.id || item.code } : null;
                 })
                 .filter(Boolean);
             state.activeTabId = state.tabs.some(tab => tab.id === storedActiveTab)
@@ -185,30 +194,58 @@
         }
 
         function bindSearch() {
-            searchInput.addEventListener('focus', () => renderSearchResults(searchInput.value.trim()));
-            searchInput.addEventListener('input', () => renderSearchResults(searchInput.value.trim()));
+            searchInput.addEventListener('focus', () => {
+                if (searchInput.value.trim()) {
+                    renderSearchResults(searchInput.value.trim());
+                }
+            });
+            searchInput.addEventListener('input', () => {
+                const keyword = searchInput.value.trim();
+                if (!keyword) {
+                    searchResults.classList.add('hidden');
+                    searchResults.innerHTML = '';
+                    return;
+                }
+                renderSearchResults(keyword);
+            });
+            searchInput.addEventListener('keydown', event => {
+                if (event.key !== 'Enter') {
+                    return;
+                }
+                event.preventDefault();
+                const keyword = searchInput.value.trim();
+                if (!keyword) {
+                    return;
+                }
+                const exact = TRADE_DEFINITIONS.find(item => item.code === keyword);
+                const firstMatch = exact || findMatches(keyword)[0];
+                if (firstMatch) {
+                    openTrade(firstMatch.code);
+                    searchInput.value = '';
+                    searchResults.classList.add('hidden');
+                }
+            });
             document.addEventListener('click', event => {
-                if (!document.getElementById('trade-search-box').contains(event.target)) {
+                if (!searchBox.contains(event.target)) {
                     searchResults.classList.add('hidden');
                 }
             });
         }
 
+        function findMatches(keyword) {
+            const normalized = keyword.toLowerCase();
+            return TRADE_DEFINITIONS.filter(item => item.code.toLowerCase().includes(normalized)
+                || item.name.toLowerCase().includes(normalized)
+                || item.keywords.some(word => word.toLowerCase().includes(normalized)));
+        }
+
         function renderSearchResults(keyword) {
-            const normalized = keyword.trim().toLowerCase();
-            const matched = TRADE_DEFINITIONS.filter(item => {
-                if (!normalized) {
-                    return true;
-                }
-                return item.code.toLowerCase().includes(normalized)
-                    || item.name.toLowerCase().includes(normalized)
-                    || item.keywords.some(word => word.toLowerCase().includes(normalized));
-            });
+            const matched = findMatches(keyword);
             if (!matched.length) {
-                searchResults.innerHTML = '<div class="search-empty">未匹配到交易，请输入交易码或中文名称。</div>';
+                searchResults.innerHTML = '<div class="search-empty bank-search-empty">未找到对应交易</div>';
             } else {
                 searchResults.innerHTML = matched.map(item => `
-                    <button type="button" class="search-result-item" data-trade-code="${item.code}">
+                    <button type="button" class="search-result-item bank-search-result" data-trade-code="${item.code}">
                         <span class="search-result-code">${item.code}</span>
                         <span class="search-result-name">${item.name}</span>
                     </button>
@@ -222,12 +259,6 @@
                 });
             }
             searchResults.classList.remove('hidden');
-        }
-
-        function bindQuickActions() {
-            document.querySelectorAll('[data-open-trade]').forEach(button => {
-                button.addEventListener('click', () => openTrade(button.dataset.openTrade));
-            });
         }
 
         function openTrade(code) {
@@ -263,15 +294,13 @@
 
         function renderTabs() {
             if (!state.tabs.length) {
-                tabStrip.innerHTML = '<div class="tab-strip-empty">尚未打开交易标签</div>';
-                tradeStage.innerHTML = renderEmptyWorkspace();
-                tabsNote.textContent = '可通过右上角交易码搜索或左侧培训快捷入口打开交易。';
-                bindTradeStageActions();
+                tabStrip.innerHTML = '<div class="tab-strip-empty bank-tab-empty"></div>';
+                tradeStage.innerHTML = '<div class="workspace-blank"></div>';
                 return;
             }
 
             tabStrip.innerHTML = state.tabs.map(tab => `
-                <div class="trade-tab ${tab.id === state.activeTabId ? 'active' : ''}" data-tab-id="${tab.id}">
+                <div class="trade-tab bank-trade-tab ${tab.id === state.activeTabId ? 'active' : ''}" data-tab-id="${tab.id}">
                     <button type="button" class="trade-tab-switch">
                         <span class="trade-tab-code">${tab.code}</span>
                         <span>${tab.name}</span>
@@ -296,163 +325,164 @@
             const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0];
             state.activeTabId = activeTab.id;
             persistTabs();
-            tabsNote.textContent = `当前标签：${activeTab.code} ${activeTab.name}`;
             tradeStage.innerHTML = renderTradeContent(activeTab);
             bindTradeStageActions(activeTab);
-        }
-
-        function renderEmptyWorkspace() {
-            return `
-                <div class="workspace-empty-shell">
-                    <div class="workspace-empty-title">交易工作台待命中</div>
-                    <div class="workspace-empty-desc">请从右上角输入交易码，如 0055 / 1061 / 1657，或输入“存款”“取款”“联网核查”等关键字。</div>
-                    <div class="workspace-empty-grid">
-                        ${TRADE_DEFINITIONS.map(item => `<button type="button" class="workspace-empty-chip" data-empty-open="${item.code}">${item.code} ${item.name}</button>`).join('')}
-                    </div>
-                </div>
-            `;
         }
 
         function renderTradeContent(tab) {
             if (tab.kind === 'iframe') {
                 return `
-                    <div class="trade-pane trade-pane-iframe">
+                    <div class="trade-pane trade-pane-iframe bank-iframe-pane">
                         <iframe src="${tab.src}" title="${tab.code} ${tab.name}"></iframe>
                     </div>
                 `;
             }
+            return renderSimulatedTradeWindow(tab);
+        }
+
+        function renderSimulatedTradeWindow(tab) {
             const customer = state.customerState.customer;
-            const intent = state.customerState.intent;
-            const showIdentity = tab.code !== '3900' && customer;
+            const loaded = customer && tab.code !== '3900';
+            const body = tab.code === '1657'
+                ? render1657Layout(customer, loaded)
+                : renderGenericTradeLayout(tab, customer, loaded);
             return `
-                <div class="trade-pane">
-                    <div class="transaction-window">
-                        <div class="transaction-window-title">${tab.code} - ${tab.name}</div>
-                        <div class="transaction-window-toolbar">
-                            <div class="toolbar-chip">当前阶段：${state.customerState.serviceStatus === 'IN_SERVICE' ? '办理中' : '待受理'}</div>
-                            <div class="toolbar-chip secondary">主题：${tab.theme || '柜面业务'}</div>
-                            ${customer ? '<button type="button" class="primary-btn slim-btn" id="simulate-load-customer">读卡/账号带出客户</button>' : '<span class="toolbar-tip">当前无临柜客户，请先在右下角呼叫客户。</span>'}
-                        </div>
-                        <div class="transaction-window-body">
-                            <div class="transaction-form-zone">
-                                <div class="transaction-section-title">交易容器预留区</div>
-                                <div class="placeholder-form-grid">
-                                    <label>交易码<input value="${tab.code}" readonly></label>
-                                    <label>交易名称<input value="${tab.name}" readonly></label>
-                                    <label>受理主题<input value="${tab.theme || ''}" readonly></label>
-                                    <label>推荐动作<input value="${intent && intent.recommendedTradeCode === tab.code ? '当前标签与客户诉求匹配' : '可继续补充具体流程'}" readonly></label>
-                                    <label class="span-2">办理提示<textarea readonly>${buildPlaceholderHint(tab, intent)}</textarea></label>
-                                </div>
-                            </div>
-                            <div class="transaction-side-zone ${showIdentity ? '' : 'muted'}" id="transaction-customer-zone">
-                                ${renderTransactionCustomerZone(tab, customer, intent)}
-                            </div>
+                <div class="trade-pane bank-trade-pane">
+                    <div class="sim-counter-window">
+                        <div class="sim-window-titlebar">${tab.code} - ${tab.name}</div>
+                        <div class="sim-window-body">
+                            ${body}
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        function renderTransactionCustomerZone(tab, customer, intent) {
-            if (!customer) {
-                return `
-                    <div class="transaction-section-title">客户信息区</div>
-                    <div class="transaction-empty-note">当前未开始办理客户业务。请先通过右下角客户到达浮动卡片抽取客户，再打开对应交易标签。</div>
-                `;
-            }
+        function render1657Layout(customer, loaded) {
             return `
-                <div class="transaction-section-title">客户信息区（仅在交易页内展示）</div>
-                <div class="transaction-customer-placeholder" id="transaction-customer-placeholder">
-                    <div class="transaction-empty-note">点击“读卡/账号带出客户”后，才展示客户身份与介质概要，模拟真实柜面系统处理顺序。</div>
-                </div>
-                <div class="transaction-customer-summary hidden" id="transaction-customer-summary">
-                    <div class="customer-summary-header">
-                        <div>
-                            <div class="customer-summary-name">${customer.customerName}</div>
-                            <div class="customer-summary-meta">${customer.idType || '证件类型待定'} / ${customer.idNo || '证件号码待定'}</div>
+                <div class="trade-form-shell trade-1657-shell">
+                    <div class="form-line compact-line">
+                        <label>是否存折</label>
+                        <select class="field-yellow"><option>0-存单</option></select>
+                    </div>
+                    <section class="trade-section-block">
+                        <div class="trade-section-title">账户信息</div>
+                        <div class="trade-form-grid form-grid-2col">
+                            <label class="span-2">账号<input class="field-yellow" value="${loaded ? '916110000010579378500' : ''}" ${loaded ? 'readonly' : ''}></label>
+                            <label>册号<input value=""></label>
+                            <label>凭证印刷号<input class="field-yellow" value="${loaded ? (customer.mediaDetails?.find(item => item.mediumType === '存单')?.voucherNo || '') : ''}" ${loaded ? 'readonly' : ''}></label>
+                            <label>挂失标志<input value=""></label>
+                            <label>挂失登记单查询<input value=""></label>
+                            <label>户名<input value="${loaded ? customer.customerName : ''}" ${loaded ? 'readonly' : ''}></label>
+                            <label>支取方式<select><option></option></select></label>
                         </div>
-                        <div class="customer-summary-state">${state.customerState.serviceStatus === 'IN_SERVICE' ? '办理中' : '待办理'}</div>
-                    </div>
-                    <div class="customer-summary-grid">
-                        <div><span>手机号</span><strong>${customer.mobile || '--'}</strong></div>
-                        <div><span>介质数量</span><strong>${customer.mediumCount || 0}</strong></div>
-                        <div><span>账户类型数</span><strong>${customer.accountTypeCount || 0}</strong></div>
-                        <div><span>当前诉求</span><strong>${intent?.requestType || '未生成'}</strong></div>
-                    </div>
-                    <div class="customer-media-list">
-                        ${(customer.mediaDetails || []).map(item => `<div class="customer-media-item"><strong>${item.mediumType}</strong><span>${item.mediumNo}</span><em>${item.currency || ''} ${item.balanceAmount ?? ''}</em></div>`).join('') || '<div class="transaction-empty-note">暂无介质信息</div>'}
+                    </section>
+                    <section class="trade-section-block">
+                        <div class="trade-section-title">交易信息</div>
+                        <div class="trade-form-grid form-grid-2col">
+                            <label>支取类别<select class="field-yellow"><option></option></select></label>
+                            <label>交易类别<select class="field-yellow"><option></option></select></label>
+                            <label>币种<select><option>156 CNY 人民币</option></select></label>
+                            <label>钞汇标志<select><option></option></select></label>
+                            <label>未通知本金金额<input value=""></label>
+                            <label>通知存款议定编号<input value=""></label>
+                            <label>通知存款支取方式<select><option></option></select></label>
+                            <label>密码<input value=""></label>
+                            <label>支取金额<input class="field-yellow" value="${loaded ? '5000.00' : ''}"></label>
+                            <label>是否到期<select><option></option></select></label>
+                            <label>证件类型<select><option>${loaded ? (customer.idType || '') : ''}</option></select></label>
+                            <label>证件号码<input value="${loaded ? (customer.idNo || '') : ''}"></label>
+                            <label>外汇兑钞水单编号<input value=""></label>
+                            <label>非义务教育证明<select><option></option></select></label>
+                            <label>新凭证种类<select><option></option></select></label>
+                            <label>新存单存折印刷号<input value=""></label>
+                            <label>部提渠利率依正<select class="field-yellow"><option></option></select></label>
+                            <label>部提渠浮动利率加减码符号<select><option></option></select></label>
+                            <label>部提渠浮动利率加减码<input value=""></label>
+                            <label>部提利率<input value="0.00000"></label>
+                            <label>外汇系统业务参考号<input value=""></label>
+                            <label>备注<input value=""></label>
+                            <label>摘要<select><option></option></select></label>
+                        </div>
+                    </section>
+                    <section class="trade-section-block">
+                        <div class="trade-section-title">代理信息</div>
+                        <div class="trade-form-grid form-grid-2col">
+                            <label>是否代理<select class="field-yellow"><option></option></select></label>
+                            <label>代理人证件类型<select><option></option></select></label>
+                            <label class="span-2">代理人证件号码<input value=""></label>
+                            <label>代理人名称<input value=""></label>
+                            <label>代理人联系方式<input value=""></label>
+                        </div>
+                    </section>
+                    <div class="trade-action-row bank-action-row">
+                        <button type="button" class="counter-form-btn">提交</button>
+                        <button type="button" class="counter-form-btn">退出</button>
                     </div>
                 </div>
             `;
         }
 
-        function buildPlaceholderHint(tab, intent) {
-            const defaultHint = {
-                '3900': '本轮先接入交易容器，后续可在此扩展联网核查步骤、影像核查和结果回显。',
-                '1061': '本轮先搭建续存交易页容器，后续补充读卡、现金金额录入、校验与提交流程。',
-                '1062': '本轮先搭建现金支取容器，后续补充账户校验、支取限额、联网核查联动和出钞记账。',
-                '1651': '本轮先搭建定期开户容器，后续补充期限、利率、自动转存和凭证打印等逻辑。',
-                '1657': '本轮先搭建定期支取容器，后续补充存单查询、本息试算、销户及打印处理。'
-            };
-            if (intent && intent.recommendedTradeCode === tab.code) {
-                return `${intent.requestDisplay}，可在当前标签继续办理。${intent.targetDescription || ''}`;
-            }
-            return defaultHint[tab.code] || '当前标签页为业务容器预留页。';
+        function renderGenericTradeLayout(tab, customer, loaded) {
+            return `
+                <div class="trade-form-shell generic-trade-shell">
+                    <section class="trade-section-block">
+                        <div class="trade-section-title">账户信息</div>
+                        <div class="trade-form-grid form-grid-2col">
+                            <label>客户名称<input value="${loaded ? customer.customerName : ''}" ${loaded ? 'readonly' : ''}></label>
+                            <label>证件号码<input value="${loaded ? (customer.idNo || '') : ''}" ${loaded ? 'readonly' : ''}></label>
+                            <label>交易代码<input class="field-yellow" value="${tab.code}" readonly></label>
+                            <label>交易名称<input value="${tab.name}" readonly></label>
+                        </div>
+                    </section>
+                    <section class="trade-section-block">
+                        <div class="trade-section-title">交易信息</div>
+                        <div class="trade-form-grid form-grid-2col">
+                            <label>受理主题<input class="field-yellow" value="${tab.theme || ''}" readonly></label>
+                            <label>目标介质<input value="${state.customerState.intent?.targetDescription || ''}"></label>
+                            <label>金额<input value="${state.customerState.intent?.cashAmount || ''}"></label>
+                            <label>备注<input value=""></label>
+                        </div>
+                    </section>
+                    <div class="trade-action-row bank-action-row">
+                        <button type="button" class="counter-form-btn">提交</button>
+                        <button type="button" class="counter-form-btn">退出</button>
+                    </div>
+                </div>
+            `;
         }
 
         function bindTradeStageActions(activeTab) {
-            tradeStage.querySelectorAll('[data-empty-open]').forEach(button => {
-                button.addEventListener('click', () => openTrade(button.dataset.emptyOpen));
-            });
-            const loadCustomerBtn = document.getElementById('simulate-load-customer');
-            if (loadCustomerBtn) {
-                loadCustomerBtn.addEventListener('click', () => {
-                    const placeholder = document.getElementById('transaction-customer-placeholder');
-                    const summary = document.getElementById('transaction-customer-summary');
-                    if (placeholder && summary) {
-                        placeholder.classList.add('hidden');
-                        summary.classList.remove('hidden');
-                    }
+            const loadCustomerZones = tradeStage.querySelectorAll('[data-load-customer]');
+            loadCustomerZones.forEach(button => {
+                button.addEventListener('click', () => {
+                    button.closest('.customer-load-placeholder')?.classList.add('hidden');
+                    tradeStage.querySelector('.customer-loaded-board')?.classList.remove('hidden');
                 });
-            }
+            });
         }
 
         function renderCustomerCard() {
             const { customer, intent, serviceStatus } = state.customerState;
-            if (!customer) {
-                floatingCardStatus.textContent = '当前无客户';
-                floatingCardBody.innerHTML = `
-                    <div class="customer-card-empty">当前无客户，请点击下方按钮模拟客户到达柜面。</div>
-                    <button type="button" class="primary-btn block" id="customer-arrive-btn">客户到达</button>
-                `;
-                document.getElementById('customer-arrive-btn').addEventListener('click', () => updateCustomerState('/api/counter-customer/arrive'));
-                return;
-            }
-
-            floatingCardStatus.textContent = serviceStatus === 'IN_SERVICE' ? '已进入办理中' : '有客户待办理';
+            const hasCustomer = Boolean(customer);
+            floatingCardStatus.textContent = hasCustomer
+                ? (serviceStatus === 'IN_SERVICE' ? '客户办理中' : '客户已到达')
+                : '当前无客户';
             floatingCardBody.innerHTML = `
-                <div class="customer-card-grid">
-                    <div><span>客户姓名</span><strong>${customer.customerName}</strong></div>
-                    <div><span>本次诉求</span><strong>${intent?.requestType || '--'}</strong></div>
-                    <div class="span-2"><span>诉求描述</span><strong>${intent?.requestDisplay || '--'}</strong></div>
-                    <div class="span-2"><span>目标介质/账户</span><strong>${intent?.targetDescription || '--'}</strong></div>
+                <div class="customer-card-grid bank-customer-grid">
+                    <div><span>客户姓名</span><strong>${customer?.customerName || '--'}</strong></div>
+                    <div><span>客户诉求</span><strong>${intent?.requestType || '--'}</strong></div>
+                    <div class="span-2"><span>目标介质/目标账户</span><strong>${intent?.targetDescription || '--'}</strong></div>
                     <div><span>是否携带现金</span><strong>${intent?.carriesCash ? '是' : '否'}</strong></div>
-                    <div><span>手机号</span><strong>${customer.mobile || '--'}</strong></div>
-                    ${intent?.carriesCash ? `<div class="span-2"><span>客户携带现金</span><strong>${formatAmount(intent.cashAmount)} 元</strong></div>` : ''}
-                    ${!intent?.carriesCash && intent?.requestType === '取存单' ? '<div class="span-2"><span>现金提示</span><strong>支取存单，本息待计算</strong></div>' : ''}
+                    <div><span>携带现金金额</span><strong>${intent?.carriesCash ? formatAmount(intent.cashAmount) : '--'}</strong></div>
                 </div>
-                <div class="customer-card-actions">
-                    <button type="button" class="primary-btn" id="customer-start-btn">开始办理</button>
-                    <button type="button" class="secondary-btn" id="customer-switch-btn">更换客户</button>
-                    <button type="button" class="ghost-btn" id="customer-clear-btn">关闭客户</button>
+                <div class="customer-card-actions bank-customer-actions">
+                    <button type="button" class="counter-form-btn ${hasCustomer ? 'is-disabled' : ''}" id="customer-arrive-btn" ${hasCustomer ? 'disabled' : ''}>客户到达</button>
+                    <button type="button" class="counter-form-btn ${!hasCustomer ? 'is-disabled' : ''}" id="customer-switch-btn" ${!hasCustomer ? 'disabled' : ''}>更换客户</button>
+                    <button type="button" class="counter-form-btn ${!hasCustomer ? 'is-disabled' : ''}" id="customer-clear-btn" ${!hasCustomer ? 'disabled' : ''}>关闭客户</button>
                 </div>
             `;
-            document.getElementById('customer-start-btn').addEventListener('click', async () => {
-                await updateCustomerState('/api/counter-customer/start');
-                if (state.customerState.intent?.recommendedTradeCode) {
-                    openTrade(state.customerState.intent.recommendedTradeCode);
-                }
-            });
+            document.getElementById('customer-arrive-btn').addEventListener('click', () => updateCustomerState('/api/counter-customer/arrive'));
             document.getElementById('customer-switch-btn').addEventListener('click', () => updateCustomerState('/api/counter-customer/switch'));
             document.getElementById('customer-clear-btn').addEventListener('click', () => updateCustomerState('/api/counter-customer/clear'));
         }
@@ -465,7 +495,7 @@
                 renderCustomerCard();
                 renderTabs();
             } catch (error) {
-                floatingCardStatus.textContent = '操作失败，请稍后重试';
+                floatingCardStatus.textContent = '操作失败';
             }
         }
 
@@ -473,7 +503,7 @@
             if (value === null || value === undefined || value === '') {
                 return '--';
             }
-            return Number(value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            return `${Number(value).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} 元`;
         }
 
         function bindCardDrag() {
@@ -495,7 +525,7 @@
                     return;
                 }
                 const left = clamp(event.clientX - offsetX, 12, window.innerWidth - floatingCard.offsetWidth - 12);
-                const top = clamp(event.clientY - offsetY, 94, window.innerHeight - floatingCard.offsetHeight - 12);
+                const top = clamp(event.clientY - offsetY, 70, window.innerHeight - floatingCard.offsetHeight - 12);
                 floatingCard.style.left = `${left}px`;
                 floatingCard.style.top = `${top}px`;
                 floatingCard.style.right = 'auto';
