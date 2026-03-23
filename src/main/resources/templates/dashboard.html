@@ -14,11 +14,7 @@
 
     <header class="top-bar desk-top-bar">
         <div class="brand-lockup brand-lockup-bank">
-            <div class="brand-emblem">鲁</div>
-            <div class="brand-copy">
-                <div class="logo">山东农村商业银行</div>
-                <div class="brand-subline">RURAL COMMERCIAL BANK OF SHANDONG</div>
-            </div>
+            <img class="brand-logo-image" th:src="@{/images/logo.png}" src="/images/logo.png" alt="山东农商银行标志">
         </div>
         <nav class="top-nav top-nav-bank">
             <span>任务中心</span>
@@ -66,8 +62,8 @@
                 <div class="queue-side-actions">
                     <button type="button" class="counter-mini-btn">顺呼</button>
                     <button type="button" class="counter-mini-btn">重呼</button>
-                    <button type="button" class="counter-mini-btn">呼叫大堂</button>
-                    <button type="button" class="counter-mini-btn">呼叫主管</button>
+                    <button type="button" class="counter-mini-btn compact-side-btn">呼叫大堂</button>
+                    <button type="button" class="counter-mini-btn compact-side-btn">呼叫主管</button>
                 </div>
             </section>
 
@@ -99,11 +95,11 @@
 
 <div class="floating-customer-card bank-customer-card" id="floating-customer-card">
     <div class="floating-card-header bank-customer-header" id="floating-card-header">
-        <div>
-            <div class="floating-card-title">客户提示</div>
+        <div class="floating-card-heading">
+            <div class="floating-card-title" id="floating-card-title">客户提示</div>
             <div class="floating-card-status" id="floating-card-status">当前无客户</div>
         </div>
-        <button type="button" class="card-min-btn" id="customer-card-toggle">—</button>
+        <button type="button" class="card-min-btn" id="customer-card-toggle" aria-label="最小化客户提示">—</button>
     </div>
     <div class="floating-card-body" id="floating-card-body"></div>
 </div>
@@ -147,6 +143,7 @@
         const tradeStage = document.getElementById('trade-stage');
         const floatingCard = document.getElementById('floating-customer-card');
         const floatingCardBody = document.getElementById('floating-card-body');
+        const floatingCardTitle = document.getElementById('floating-card-title');
         const floatingCardStatus = document.getElementById('floating-card-status');
         const cardToggle = document.getElementById('customer-card-toggle');
         const cardHeader = document.getElementById('floating-card-header');
@@ -465,6 +462,8 @@
         function renderCustomerCard() {
             const { customer, intent, serviceStatus } = state.customerState;
             const hasCustomer = Boolean(customer);
+            const isArrived = hasCustomer && serviceStatus !== 'IN_SERVICE';
+            floatingCardTitle.textContent = isArrived ? '客户到达提示' : '客户提示';
             floatingCardStatus.textContent = hasCustomer
                 ? (serviceStatus === 'IN_SERVICE' ? '客户办理中' : '客户已到达')
                 : '当前无客户';
@@ -540,9 +539,8 @@
                 sessionStorage.setItem(STORAGE_KEYS.cardPosition, JSON.stringify({ left: floatingCard.style.left, top: floatingCard.style.top }));
             });
             cardToggle.addEventListener('click', () => {
-                floatingCard.classList.toggle('collapsed');
-                sessionStorage.setItem(STORAGE_KEYS.cardCollapsed, floatingCard.classList.contains('collapsed') ? '1' : '0');
-                cardToggle.textContent = floatingCard.classList.contains('collapsed') ? '+' : '—';
+                const collapsed = !floatingCard.classList.contains('collapsed');
+                setCardCollapsed(collapsed);
             });
         }
 
@@ -558,8 +556,14 @@
 
         function applyCardCollapsedState() {
             const collapsed = sessionStorage.getItem(STORAGE_KEYS.cardCollapsed) === '1';
+            setCardCollapsed(collapsed);
+        }
+
+        function setCardCollapsed(collapsed) {
             floatingCard.classList.toggle('collapsed', collapsed);
-            cardToggle.textContent = collapsed ? '+' : '—';
+            cardToggle.textContent = collapsed ? '恢复' : '—';
+            cardToggle.setAttribute('aria-label', collapsed ? '恢复客户提示' : '最小化客户提示');
+            sessionStorage.setItem(STORAGE_KEYS.cardCollapsed, collapsed ? '1' : '0');
         }
 
         function clamp(value, min, max) {

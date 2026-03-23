@@ -78,28 +78,15 @@ textarea { resize: vertical; min-height: 98px; }
 .brand-lockup-bank {
     display: flex;
     align-items: center;
-    gap: 12px;
+    height: 100%;
+    padding-left: 2px;
 }
-.brand-emblem {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%, #f8f8f8 0 16%, transparent 17%), linear-gradient(135deg, #d71b24 0 40%, #16904e 40% 70%, #e6e6e6 70% 100%);
-    color: transparent;
-    position: relative;
-    box-shadow: inset 0 0 0 4px rgba(255,255,255,.72);
-}
-.logo {
-    font-size: 28px;
-    font-weight: 700;
-    color: #1c2f45;
-    line-height: 1;
-}
-.brand-subline {
-    margin-top: 2px;
-    font-size: 12px;
-    color: #1c2f45;
-    letter-spacing: .03em;
+.brand-logo-image {
+    display: block;
+    width: 348px;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
 }
 .top-nav-bank {
     height: 50px;
@@ -233,6 +220,13 @@ textarea { resize: vertical; min-height: 98px; }
     flex-direction: column;
     gap: 6px;
 }
+.compact-side-btn {
+    min-height: 24px;
+    padding: 2px 6px;
+    font-size: 11px;
+    line-height: 1.05;
+    letter-spacing: 0;
+}
 .counter-mini-btn,
 .counter-form-btn,
 .secondary-link {
@@ -278,24 +272,57 @@ textarea { resize: vertical; min-height: 98px; }
     min-height: 0;
 }
 .bank-tab-strip {
-    min-height: 28px;
+    min-height: 29px;
     padding: 4px 8px 0;
     background: #5f8fc7;
-    border-bottom: 1px solid #8db0d6;
+    border-bottom: 1px solid #7ea0c8;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     gap: 2px;
     align-items: flex-end;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
 }
 .bank-tab-empty { min-height: 24px; }
 .bank-trade-tab {
+    display: inline-flex;
+    align-items: stretch;
+    flex: 0 0 auto;
     border-radius: 0;
-    border: 1px solid #92afd0;
+    border: 1px solid #2f6fb5;
     border-bottom: 0;
-    background: #dfe7f2;
+    background: linear-gradient(180deg, #5b8fcb, #2f6fb5);
     min-height: 24px;
 }
-.bank-trade-tab.active { background: #fff; }
-.trade-tab-switch { padding: 4px 8px 4px 10px; font-size: 13px; }
-.trade-tab-close { padding: 2px 8px 2px 4px; font-size: 16px; }
+.bank-trade-tab.active {
+    background: #fff;
+    border-color: #8aa5c5;
+}
+.trade-tab-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px 4px 10px;
+    font-size: 12px;
+    line-height: 1;
+    background: transparent;
+    color: #fff;
+}
+.bank-trade-tab.active .trade-tab-switch { color: #000; }
+.trade-tab-code { font-weight: 400; }
+.trade-tab-close {
+    padding: 0 8px 0 3px;
+    font-size: 14px;
+    line-height: 1;
+    background: transparent;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+}
+.bank-trade-tab:not(.active) .trade-tab-close { color: #fff; }
+.bank-trade-tab.active .trade-tab-close { color: #000; }
 .bank-trade-stage {
     flex: 1;
     min-height: 0;
@@ -421,16 +448,30 @@ textarea { resize: vertical; min-height: 98px; }
     box-shadow: 0 10px 24px rgba(99, 76, 19, .22);
 }
 .bank-customer-header {
-    padding: 8px 10px 6px;
+    padding: 6px 8px 6px 10px;
     background: linear-gradient(180deg, rgba(255,255,255,.24), rgba(255,255,255,.04));
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: move;
+}
+.floating-card-heading {
+    min-width: 0;
 }
 .floating-card-title { font-size: 14px; color: #624604; }
 .floating-card-status { font-size: 12px; color: #7a611d; }
 .card-min-btn {
-    width: 22px;
-    height: 22px;
-    border-radius: 2px;
-    background: rgba(255,255,255,.55);
+    min-width: 22px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 1px;
+    border: 1px solid #b28a2a;
+    background: linear-gradient(180deg, #fff6c9, #eccb67);
+    color: #624604;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
 }
 .floating-card-body { padding: 8px 10px 10px; }
 .bank-customer-grid {
@@ -458,6 +499,17 @@ textarea { resize: vertical; min-height: 98px; }
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
     margin-top: 8px;
+}
+.bank-customer-card.collapsed {
+    width: 180px;
+}
+.bank-customer-card.collapsed .bank-customer-header {
+    align-items: center;
+    cursor: default;
+}
+.bank-customer-card.collapsed .floating-card-status,
+.bank-customer-card.collapsed .floating-card-body {
+    display: none;
 }
 .desk-status-bar {
     height: 24px;
@@ -510,23 +562,31 @@ textarea { resize: vertical; min-height: 98px; }
     height: 28px;
     background: #5f8fc7;
     display: flex;
+    flex-direction: row;
     align-items: flex-end;
     gap: 2px;
     padding: 4px 6px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
 }
 .inventory-tab {
     min-width: 84px;
     height: 22px;
-    background: #dfe7f2;
-    border: 1px solid #8eb0d6;
+    background: linear-gradient(180deg, #5b8fcb, #2f6fb5);
+    border: 1px solid #2f6fb5;
     border-bottom: 0;
     display: inline-flex;
     align-items: center;
     padding: 0 8px;
     font-size: 12px;
-    color: #4a6077;
+    color: #fff;
 }
-.inventory-tab.active { background: #fff; }
+.inventory-tab.active {
+    background: #fff;
+    border-color: #8aa5c5;
+    color: #000;
+}
 .inventory-query-panel {
     padding: 10px 14px 4px;
 }
@@ -581,6 +641,7 @@ textarea { resize: vertical; min-height: 98px; }
 }
 @media (max-width: 1280px) {
     .top-bar { grid-template-columns: 360px 1fr 300px; }
+    .brand-logo-image { width: 300px; }
     .inventory-query-grid { grid-template-columns: 1fr; gap: 10px; }
 }
 @media (max-width: 1080px) {
