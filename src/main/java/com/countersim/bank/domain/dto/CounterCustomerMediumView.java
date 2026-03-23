@@ -12,6 +12,7 @@ public class CounterCustomerMediumView {
     private String mediumSubType;
     private String mediumNo;
     private String customerAccountNo;
+    private String voucherNo;
     private String currency;
     private BigDecimal balanceAmount;
     private String depositType;

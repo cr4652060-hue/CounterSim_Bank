@@ -89,7 +89,7 @@ public class CounterCustomerScenarioServiceImpl implements CounterCustomerScenar
                 .targetAccountNo(target != null ? target.getCustomerAccountNo() : null)
                 .targetDescription(target == null ? "目标账户：借记卡（待指定）" : "目标账户：" + target.getMediumType() + " " + target.getMediumNo())
                 .carriesCash(false)
-                .cashAmount(null)
+                .cashAmount(amount)
                 .recommendedTradeCode("1062")
                 .recommendedTradeName("个人活期存款现金支取")
                 .build();
@@ -119,9 +119,11 @@ public class CounterCustomerScenarioServiceImpl implements CounterCustomerScenar
                 .requestType("取存单")
                 .requestDisplay("客户诉求：取存单")
                 .targetMediumType(certificate != null ? certificate.getMediumType() : "存单")
-                .targetMediumNo(certificate != null ? certificate.getMediumNo() : "待指定")
+                .targetMediumNo(certificate != null ? (certificate.getVoucherNo() == null ? certificate.getMediumNo() : certificate.getVoucherNo()) : "待指定")
                 .targetAccountNo(certificate != null ? certificate.getCustomerAccountNo() : null)
-                .targetDescription(certificate == null ? "目标存单：待指定" : "目标存单：" + certificate.getMediumNo())
+                .targetDescription(certificate == null
+                        ? "目标存单：待指定"
+                        : "目标存单：" + (certificate.getVoucherNo() == null ? certificate.getMediumNo() : certificate.getVoucherNo()))
                 .carriesCash(false)
                 .cashAmount(null)
                 .recommendedTradeCode("1657")

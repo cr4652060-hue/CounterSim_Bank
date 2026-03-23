@@ -108,6 +108,7 @@ public class CounterCustomerServiceImpl implements CounterCustomerService {
                         .mediumSubType(item.getMediumSubType())
                         .mediumNo(item.getMediumNo())
                         .customerAccountNo(item.getCustomerAccountNo())
+                        .voucherNo(item.getVoucherNo())
                         .currency(item.getCurrency())
                         .balanceAmount(item.getBalanceAmount())
                         .depositType(item.getDepositType())
