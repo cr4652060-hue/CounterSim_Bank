@@ -8,108 +8,155 @@
 <body th:class="${embedded} ? 'embedded-body' : null">
 <div th:class="${embedded} ? 'inventory-embedded-shell' : 'simple-page'">
     <div th:class="${embedded} ? 'inventory-screen' : 'simple-card wide-card inventory-screen standalone'">
-        <div class="inventory-topbar">
-            <div class="inventory-tab">常用交易</div>
-            <div class="inventory-tab active">0055 - 柜员库箱查询/打印</div>
-        </div>
-
         <div class="inventory-query-panel">
-            <form class="inventory-query-grid" method="get" th:action="@{/inventory/0055}">
+            <form class="inventory-query-grid" method="get" th:action="@{/inventory/0055}" id="inventory-form">
                 <input type="hidden" name="embedded" th:value="${embedded}">
                 <label>
                     <span>查询类型</span>
-                    <select name="type" class="field-yellow">
+                    <select name="type" class="field-yellow" autofocus>
                         <option value="cash" th:selected="${type == 'cash'}">1-现金/现钞</option>
                         <option value="voucher" th:selected="${type == 'voucher'}">2-凭证</option>
                     </select>
                 </label>
-                <label th:if="${type == 'voucher'}">
-                    <span>凭证类别</span>
-                    <select class="field-yellow">
-                        <option>0-所有凭证</option>
-                    </select>
-                </label>
                 <label>
                     <span>柜员号</span>
-                    <input class="field-yellow" th:value="${result != null ? result.tellerCode : ''}" readonly>
+                    <input name="tellerCode" class="field-yellow" th:value="${result != null ? result.tellerCode : ''}" readonly>
                 </label>
-                <label>
-                    <span th:text="${type == 'cash'} ? '币种' : '库箱号'"></span>
-                    <input th:value="${type == 'cash'} ? '156-CNY 人民币' : ''">
+                <label th:if="${type == 'voucher'}">
+                    <span>凭证类型</span>
+                    <select class="field-yellow">
+                        <option>0-所有凭证</option>
+                        <option>0611-个人一卡通</option>
+                        <option>0623-银行卡</option>
+                    </select>
+                </label>
+                <label th:if="${type == 'cash'}">
+                    <span>币种</span>
+                    <select class="field-yellow">
+                        <option>156-CNY 人民币</option>
+                    </select>
+                </label>
+                <label th:if="${type == 'voucher'}">
+                    <span>凭证起始号</span>
+                    <input class="field-yellow" th:value="${result != null ? result.startNo : ''}">
                 </label>
                 <label th:if="${type == 'cash'}">
                     <span>库箱号</span>
-                    <input>
+                    <input th:value="${result != null ? result.tellerCode : ''}">
                 </label>
                 <label th:if="${type == 'voucher'}">
-                    <span>柜员姓名</span>
-                    <input>
+                    <span>凭证终止号</span>
+                    <input class="field-yellow" th:value="${result != null ? result.endNo : ''}">
+                </label>
+                <label th:if="${type == 'cash'}">
+                    <span>库箱名称</span>
+                    <input th:value="${type == 'cash'} ? '现金库箱' : ''" readonly>
                 </label>
                 <div class="inventory-query-actions">
                     <button class="counter-form-btn" type="submit">查询</button>
                     <a class="counter-form-btn secondary-link" th:if="${!embedded}" th:href="@{/dashboard}">退出</a>
-                    <button class="counter-form-btn" th:if="${embedded}" type="button" onclick="window.history.back()">退出</button>
+                    <button class="counter-form-btn" th:if="${embedded}" type="button" id="embedded-exit-btn">退出</button>
                 </div>
             </form>
         </div>
 
-        <div class="inventory-result-caption" th:if="${result != null and type == 'cash'}" th:text="|库箱号：${result.tellerCode}|"></div>
-        <div class="inventory-result-caption" th:if="${result != null and type == 'voucher'}" th:text="|柜员库箱：${result.tellerCode}|"></div>
+        <div class="inventory-result-panel">
+            <div class="inventory-result-caption" th:if="${result != null and type == 'cash'}" th:text="|库箱号：${result.tellerCode}|"></div>
+            <div class="inventory-result-caption" th:if="${result != null and type == 'voucher'}" th:text="|柜员库箱：${result.tellerCode}|"></div>
 
-        <table class="inventory-grid-table" th:if="${result != null and type == 'cash'}">
-            <thead>
-            <tr>
-                <th>序号</th>
-                <th>币种</th>
-                <th>上日余额</th>
-                <th>本日收入</th>
-                <th>本日付出</th>
-                <th>调入金额</th>
-                <th>调出金额</th>
-                <th>期末余额</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>1</td>
-                <td>156-CNY 人民币</td>
-                <td th:text="${result.currentCash}"></td>
-                <td>1.00</td>
-                <td>0.00</td>
-                <td>0.00</td>
-                <td>0.00</td>
-                <td th:text="${result.currentCash}"></td>
-            </tr>
-            </tbody>
-        </table>
+            <div class="inventory-grid-wrap">
+                <table class="inventory-grid-table" th:if="${result != null and type == 'cash'}">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>币种</th>
+                        <th>上日余额</th>
+                        <th>本日收入</th>
+                        <th>本日付出</th>
+                        <th>调入金额</th>
+                        <th>调出金额</th>
+                        <th>期末余额</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>156-CNY 人民币</td>
+                        <td th:text="${result.currentCash}"></td>
+                        <td>1.00</td>
+                        <td>0.00</td>
+                        <td>0.00</td>
+                        <td>0.00</td>
+                        <td th:text="${result.currentCash}"></td>
+                    </tr>
+                    </tbody>
+                </table>
 
-        <table class="inventory-grid-table" th:if="${result != null and type == 'voucher'}">
-            <thead>
-            <tr>
-                <th>序号</th>
-                <th>凭证种类</th>
-                <th>凭证名称</th>
-                <th>凭证起始号</th>
-                <th>凭证终止号</th>
-                <th>库存数量</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr>
-                <td>1</td>
-                <td th:text="${result.voucherType == '普通版存单'} ? '0611' : '0001'"></td>
-                <td th:text="${result.voucherType}"></td>
-                <td th:text="${result.startNo}"></td>
-                <td th:text="${result.endNo}"></td>
-                <td th:text="${result.remainCount}"></td>
-            </tr>
-            </tbody>
-        </table>
+                <table class="inventory-grid-table" th:if="${result != null and type == 'voucher'}">
+                    <thead>
+                    <tr>
+                        <th>序号</th>
+                        <th>凭证种类</th>
+                        <th>凭证名称</th>
+                        <th>凭证起始号</th>
+                        <th>凭证终止号</th>
+                        <th>库存数量</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td th:text="${result.voucherType == '普通版存单'} ? '0611' : '0001'"></td>
+                        <td th:text="${result.voucherType}"></td>
+                        <td th:text="${result.startNo}"></td>
+                        <td th:text="${result.endNo}"></td>
+                        <td th:text="${result.remainCount}"></td>
+                    </tr>
+                    </tbody>
+                </table>
 
-        <div class="inventory-bottom-actions" th:if="${result != null}">
-            <button type="button" class="counter-form-btn">打印</button>
+                <div class="inventory-empty-state" th:if="${result == null}">
+                    <div>请先录入查询条件后点击“查询”。</div>
+                </div>
+            </div>
+
+            <div class="inventory-bottom-actions">
+                <button type="button" class="counter-form-btn" th:disabled="${result == null}">打印</button>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+    (() => {
+        const root = document.body;
+        const enterSelector = 'input:not([type="hidden"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])';
+
+        root.querySelectorAll(enterSelector).forEach(node => {
+            node.addEventListener('keydown', event => {
+                if (event.key !== 'Enter' || event.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+                event.preventDefault();
+                const fields = Array.from(root.querySelectorAll(enterSelector)).filter(item => item.offsetParent !== null);
+                const currentIndex = fields.indexOf(event.target);
+                const next = fields[currentIndex + 1];
+                if (next) {
+                    next.focus();
+                    if (next.select) {
+                        next.select();
+                    }
+                }
+            });
+        });
+
+        const exitButton = document.getElementById('embedded-exit-btn');
+        if (exitButton) {
+            exitButton.addEventListener('click', () => {
+                window.parent.postMessage({ type: 'close-trade', tradeCode: '0055' }, '*');
+            });
+        }
+    })();
+</script>
 </body>
 </html>

@@ -113,12 +113,11 @@
 <script>
     (() => {
         const TRADE_DEFINITIONS = [
-            { code: '0055', name: '柜员库箱查询', keywords: ['0055', '库箱', '柜员库箱', '库存', '凭证'], kind: 'iframe', src: '/inventory/0055?embedded=true' },
-            { code: '3900', name: '联网核查', keywords: ['3900', '联网核查', '核查'], kind: 'form', theme: '联网核查' },
-            { code: '1061', name: '个人活期存款续存', keywords: ['1061', '续存', '活期', '存款'], kind: 'form', theme: '个人活期存款续存' },
-            { code: '1062', name: '个人活期存款现金支取', keywords: ['1062', '支取', '取款', '活期'], kind: 'form', theme: '个人活期存款现金支取' },
-            { code: '1651', name: '个人定期存款开户', keywords: ['1651', '定期开户', '存单开户'], kind: 'form', theme: '个人定期存款开户' },
-            { code: '1657', name: '个人定期存款支取', keywords: ['1657', '定期支取', '存单支取'], kind: 'form', theme: '个人定期存款支取' }
+            { code: '3900', name: '联网核查', keywords: ['3900', '联网核查', '核查'], kind: 'trade' },
+            { code: '1061', name: '个人活期存款续存', keywords: ['1061', '续存', '活期', '存款'], kind: 'trade' },
+            { code: '1062', name: '个人活期存款现金支取', keywords: ['1062', '支取', '取款', '活期'], kind: 'trade' },
+            { code: '1651', name: '个人定期存款开户', keywords: ['1651', '定期开户', '存单开户'], kind: 'trade' },
+            { code: '1657', name: '个人定期存款支取', keywords: ['1657', '定期支取', '存单支取'], kind: 'trade' }
         ];
 
         const STORAGE_KEYS = {
@@ -167,16 +166,146 @@
             const storedTabs = safeJsonParse(sessionStorage.getItem(STORAGE_KEYS.tabs), []);
             const storedActiveTab = sessionStorage.getItem(STORAGE_KEYS.activeTab);
             state.tabs = storedTabs
-                .map(item => {
-                    const definition = getTradeDefinition(item.code);
-                    return definition ? { ...definition, id: item.id || item.code } : null;
-                })
+                .map(item => createTabState(getTradeDefinition(item.code), item.id || item.code))
                 .filter(Boolean);
             state.activeTabId = state.tabs.some(tab => tab.id === storedActiveTab)
                 ? storedActiveTab
                 : state.tabs[0]?.id || null;
         }
+        function createTabState(definition, id = definition?.code) {
+            if (!definition) {
+                return null;
+            }
+            return {
+                ...definition,
+                id,
+                ui: {
+                    proxyOpen: false,
+                    proxyMode: 'manual',
+                    verifyStage: 'entry'
+                },
+                form: createInitialForm(definition.code)
+            };
+        }
 
+        function createInitialForm(code) {
+            const commonProxy = {
+                idType: '',
+                idNo: '',
+                name: '',
+                gender: '',
+                expiry: '',
+                phone: '',
+                nationality: '',
+                result: ''
+            };
+            const common3900 = {
+                idType: '1001-第二代居民身份证',
+                idNo: '',
+                customerName: '',
+                businessType: '01-银行卡业务',
+                checkResult: '00-身份证号码与姓名一致并存在照片',
+                authority: '济南市公安局',
+                validUntil: '2032-02-18'
+            };
+            switch (code) {
+                case '3900':
+                    return {
+                        ...common3900,
+                        identityPhoto: '/images/customer-avatar.png',
+                        verifyPhoto: '/images/customer-avatar.png'
+                    };
+                case '1061':
+                    return {
+                        accountNo: '',
+                        cardNo: '',
+                        customerName: '',
+                        idType: '',
+                        idNo: '',
+                        currentBalance: '',
+                        depositAmount: '',
+                        cashSource: '1-现金',
+                        summary: '',
+                        notes: '',
+                        voucherNo: '',
+                        accountType: '个人活期',
+                        proxy: { ...commonProxy },
+                        verify: { ...common3900 }
+                    };
+                case '1062':
+                    return {
+                        accountNo: '',
+                        cardNo: '',
+                        customerName: '',
+                        idType: '',
+                        idNo: '',
+                        availableBalance: '',
+                        withdrawAmount: '',
+                        password: '',
+                        cashFlag: '钞',
+                        summary: '',
+                        notes: '',
+                        voucherNo: '',
+                        mediumNo: '',
+                        proxy: { ...commonProxy },
+                        verify: { ...common3900 }
+                    };
+                case '1651':
+                    return {
+                        certType: '1001-第二代居民身份证',
+                        certNo: '',
+                        customerName: '',
+                        mobile: '',
+                        depositType: '整存整取',
+                        term: '1年',
+                        amount: '',
+                        rateType: '挂牌利率',
+                        transferAccount: '',
+                        printNo: '',
+                        cashSource: '1-现金',
+                        notes: '',
+                        verify: { ...common3900 },
+                        proxy: { ...commonProxy }
+                    };
+                case '1657':
+                    return {
+                        passbookFlag: '0-存单',
+                        accountNo: '',
+                        volumeNo: '',
+                        printNo: '',
+                        lossFlag: '',
+                        customerName: '',
+                        payoutMode: '',
+                        withdrawType: '',
+                        tradeType: '',
+                        currency: '156-CNY 人民币',
+                        cashFlag: '钞',
+                        unpaidPrincipal: '',
+                        noticeNo: '',
+                        noticeMode: '',
+                        password: '',
+                        withdrawAmount: '',
+                        maturityFlag: '',
+                        certType: '',
+                        certNo: '',
+                        exchangeReceiptNo: '',
+                        nonCompulsoryEduProof: '',
+                        newVoucherType: '',
+                        newPrintNo: '',
+                        rateAdjustMode: '',
+                        rateAdjustSign: '',
+                        rateAdjustValue: '',
+                        rateValue: '0.00000',
+                        fxBusinessNo: '',
+                        summary: '',
+                        notes: '',
+                        proxy: { ...commonProxy },
+                        transfer: { receiveAccount: '', receiveName: '', receiveBank: '', receiveAmount: '' }
+                    };
+                default:
+                    return {};
+            }
+        }
         function persistTabs() {
             sessionStorage.setItem(STORAGE_KEYS.tabs, JSON.stringify(state.tabs.map(tab => ({ id: tab.id, code: tab.code }))));
             if (state.activeTabId) {
@@ -228,7 +357,16 @@
                 }
             });
         }
-
+        function bindWindowMessaging() {
+            window.addEventListener('message', event => {
+                if (event.data?.type === 'close-trade' && event.data.tradeCode) {
+                    const tab = state.tabs.find(item => item.code === event.data.tradeCode);
+                    if (tab) {
+                        closeTrade(tab.id);
+                    }
+                }
+            });
+        }
         function findMatches(keyword) {
             const normalized = keyword.toLowerCase();
             return TRADE_DEFINITIONS.filter(item => item.code.toLowerCase().includes(normalized)
@@ -267,7 +405,7 @@
             if (existing) {
                 state.activeTabId = existing.id;
             } else {
-                const tab = { ...definition, id: code };
+                const tab = createTabState(definition, code);
                 state.tabs.push(tab);
                 state.activeTabId = tab.id;
             }
@@ -324,6 +462,7 @@
             persistTabs();
             tradeStage.innerHTML = renderTradeContent(activeTab);
             bindTradeStageActions(activeTab);
+            focusFirstEditableField();
         }
 
         function renderTradeContent(tab) {
@@ -338,125 +477,550 @@
         }
 
         function renderSimulatedTradeWindow(tab) {
-            const customer = state.customerState.customer;
-            const loaded = customer && tab.code !== '3900';
-            const body = tab.code === '1657'
-                ? render1657Layout(customer, loaded)
-                : renderGenericTradeLayout(tab, customer, loaded);
+
             return `
-                <div class="trade-pane bank-trade-pane">
+                <div class="trade-pane bank-trade-pane" data-active-trade="${tab.code}">
                     <div class="sim-counter-window">
                         <div class="sim-window-titlebar">${tab.code} - ${tab.name}</div>
-                        <div class="sim-window-body">
-                            ${body}
+                        <div class="sim-window-body trade-scroll-body">
+                            ${renderTradeBody(tab)}
                         </div>
                     </div>
                 </div>
             `;
         }
 
-        function render1657Layout(customer, loaded) {
+
+        function renderTradeBody(tab) {
+            switch (tab.code) {
+                case '3900':
+                    return render3900Standalone(tab);
+                case '1061':
+                    return render1061(tab);
+                case '1062':
+                    return render1062(tab);
+                case '1651':
+                    return render1651(tab);
+                case '1657':
+                    return render1657(tab);
+                default:
+                    return '';
+            }
+        }
+
+        function render1061(tab) {
+            const f = tab.form;
             return `
-                <div class="trade-form-shell trade-1657-shell">
-                    <div class="form-line compact-line">
-                        <label>是否存折</label>
-                        <select class="field-yellow"><option>0-存单</option></select>
+                 <div class="trade-page trade-layout-grid">
+                    ${renderLeftCustomerBoard('1061', f, [
+                { label: '客户名称', value: f.customerName || '--' },
+                { label: '证件类型', value: f.idType || '--' },
+                { label: '证件号码', value: f.idNo || '--' },
+                { label: '活期账号', value: f.accountNo || '--' }
+            ])}
+                    <div class="trade-main-panel">
+                        ${renderOperationBar('1061', [
+                { action: 'load-customer', label: '读卡带出' },
+                { action: 'load-account', label: '账号带出' },
+                { action: 'open-proxy', label: '代理人' },
+                { action: 'open-verify', label: '联网核查' }
+            ])}
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">账户信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('账号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, placeholder: '请输入账号或读卡后带出' }))}
+                                ${field('卡号/折号', input('cardNo', f.cardNo, { placeholder: '支持鼠标点选修改' }))}
+                                ${field('客户名称', input('customerName', f.customerName, { readonly: true, gray: true }))}
+                                ${field('证件类型', input('idType', f.idType, { readonly: true, gray: true }))}
+                                ${field('证件号码', input('idNo', f.idNo, { readonly: true, gray: true }))}
+                                ${field('账户类型', input('accountType', f.accountType, { readonly: true, gray: true }))}
+                                ${field('当前余额', input('currentBalance', f.currentBalance, { readonly: true, gray: true }))}
+                                ${field('凭证号', input('voucherNo', f.voucherNo, { readonly: true, gray: true }))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">交易信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('续存金额', input('depositAmount', f.depositAmount, { yellow: true }))}
+                                ${field('现金来源', select('cashSource', f.cashSource, ['1-现金', '2-转账'], { yellow: true }))}
+                                ${field('摘要', select('summary', f.summary, ['', '续存', '现金续存', '客户自存']))}
+                                ${field('备注', input('notes', f.notes, { placeholder: '仅做到提交前' }))}
+                            </div>
+                        </section>
+                        ${renderBottomActions(tab.code)}
                     </div>
-                    <section class="trade-section-block">
-                        <div class="trade-section-title">账户信息</div>
-                        <div class="trade-form-grid form-grid-2col">
-                            <label class="span-2">账号<input class="field-yellow" value="${loaded ? '916110000010579378500' : ''}" ${loaded ? 'readonly' : ''}></label>
-                            <label>册号<input value=""></label>
-                            <label>凭证印刷号<input class="field-yellow" value="${loaded ? (customer.mediaDetails?.find(item => item.mediumType === '存单')?.voucherNo || '') : ''}" ${loaded ? 'readonly' : ''}></label>
-                            <label>挂失标志<input value=""></label>
-                            <label>挂失登记单查询<input value=""></label>
-                            <label>户名<input value="${loaded ? customer.customerName : ''}" ${loaded ? 'readonly' : ''}></label>
-                            <label>支取方式<select><option></option></select></label>
+                    ${renderProxyModal(tab)}
+                    ${renderVerifyModal(tab)}
+                </div>
+            `;
+        }
+
+        function render1062(tab) {
+            const f = tab.form;
+            return `
+                <div class="trade-page trade-layout-grid">
+                    ${renderLeftCustomerBoard('1062', f, [
+                { label: '客户名称', value: f.customerName || '--' },
+                { label: '证件号码', value: f.idNo || '--' },
+                { label: '介质号码', value: f.mediumNo || '--' },
+                { label: '可用余额', value: f.availableBalance || '--' }
+            ])}
+                    <div class="trade-main-panel">
+                        ${renderOperationBar('1062', [
+                { action: 'load-account', label: '输入账号带出' },
+                { action: 'load-customer', label: '刷卡带出' },
+                { action: 'open-proxy', label: '代理人' },
+                { action: 'open-verify', label: '联网核查' }
+            ])}
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">账户信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid highlight-grid">
+                                ${field('账号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, placeholder: '手输账号或后续刷卡' }))}
+                                ${field('介质号码', input('mediumNo', f.mediumNo, { yellow: true, placeholder: '卡号/折号' }))}
+                                ${field('客户名称', input('customerName', f.customerName, { readonly: true, gray: true }))}
+                                ${field('证件号码', input('idNo', f.idNo, { readonly: true, gray: true }))}
+                                ${field('凭证号', input('voucherNo', f.voucherNo, { readonly: true, gray: true }))}
+                                ${field('可用余额', input('availableBalance', f.availableBalance, { readonly: true, gray: true }))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">交易信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid highlight-grid">
+                                ${field('支取金额', input('withdrawAmount', f.withdrawAmount, { yellow: true }))}
+                                ${field('密码', input('password', f.password, { yellow: true, type: 'password' }))}
+                                ${field('钞汇标志', select('cashFlag', f.cashFlag, ['钞', '汇'], { yellow: true }))}
+                                ${field('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取']))}
+                                ${field('备注', input('notes', f.notes))}
+                                ${field('交易校验', input('verifyHint', '提交前仅做录入校验', { readonly: true, gray: true }))}
+                            </div>
+                        </section>
+                        ${renderBottomActions(tab.code)}
+                    </div>
+                    ${renderProxyModal(tab)}
+                    ${renderVerifyModal(tab)}
+                </div>
+            `;
+        }
+
+        function render1651(tab) {
+            const f = tab.form;
+            return `
+                <div class="trade-page trade-layout-grid">
+                    ${renderLeftCustomerBoard('1651', f, [
+                { label: '姓名', value: f.customerName || '--' },
+                { label: '证件类型', value: f.certType || '--' },
+                { label: '证件号码', value: f.certNo || '--' },
+                { label: '联系电话', value: f.mobile || '--' }
+            ])}
+                    <div class="trade-main-panel">
+                        ${renderOperationBar('1651', [
+                { action: 'load-certificate', label: '读取证件' },
+                { action: 'open-verify', label: '3900核查' },
+                { action: 'open-proxy', label: '代理人' }
+            ])}
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">客户信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('证件类型', select('certType', f.certType, ['1001-第二代居民身份证', '1002-临时身份证', '1003-中国护照'], { yellow: true, autofocus: true }))}
+                                ${field('证件号码', input('certNo', f.certNo, { yellow: true }))}
+                                ${field('客户名称', input('customerName', f.customerName, { yellow: true }))}
+                                ${field('联系电话', input('mobile', f.mobile, { yellow: true }))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">开户信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('存款种类', select('depositType', f.depositType, ['整存整取', '零存整取', '通知存款'], { yellow: true }))}
+                                ${field('存期', select('term', f.term, ['3个月', '6个月', '1年', '2年', '3年'], { yellow: true }))}
+                                ${field('开户金额', input('amount', f.amount, { yellow: true }))}
+                                ${field('利率类型', select('rateType', f.rateType, ['挂牌利率', '协议利率'], { yellow: true }))}
+                                ${field('转出账号', input('transferAccount', f.transferAccount))}
+                                ${field('印刷号', input('printNo', f.printNo))}
+                                ${field('资金来源', select('cashSource', f.cashSource, ['1-现金', '2-转账'], { yellow: true }))}
+                                ${field('备注', input('notes', f.notes))}
+                            </div>
+                        </section>
+                        ${renderBottomActions(tab.code)}
+                    </div>
+                    ${renderProxyModal(tab)}
+                    ${renderVerifyModal(tab)}
+                </div>
+            `;
+        }
+
+        function render1657(tab) {
+            const f = tab.form;
+            return `
+                <div class="trade-page trade-layout-grid wide-main-layout">
+                    ${renderLeftCustomerBoard('1657', f, [
+                { label: '户名', value: f.customerName || '--' },
+                { label: '账号', value: f.accountNo || '--' },
+                { label: '凭证印刷号', value: f.printNo || '--' },
+                { label: '支取金额', value: f.withdrawAmount || '--' }
+            ])}
+                    <div class="trade-main-panel">
+                        ${renderOperationBar('1657', [
+                { action: 'load-deposit-slip', label: '选择存单' },
+                { action: 'load-customer', label: '读取账户' },
+                { action: 'open-proxy', label: '代理人' }
+            ])}
+                        <div class="form-line compact-line">
+                            <label>是否存折</label>
+                            ${select('passbookFlag', f.passbookFlag, ['0-存单', '1-存折'], { yellow: true, autofocus: true })}
                         </div>
-                    </section>
-                    <section class="trade-section-block">
-                        <div class="trade-section-title">交易信息</div>
-                        <div class="trade-form-grid form-grid-2col">
-                            <label>支取类别<select class="field-yellow"><option></option></select></label>
-                            <label>交易类别<select class="field-yellow"><option></option></select></label>
-                            <label>币种<select><option>156 CNY 人民币</option></select></label>
-                            <label>钞汇标志<select><option></option></select></label>
-                            <label>未通知本金金额<input value=""></label>
-                            <label>通知存款议定编号<input value=""></label>
-                            <label>通知存款支取方式<select><option></option></select></label>
-                            <label>密码<input value=""></label>
-                            <label>支取金额<input class="field-yellow" value="${loaded ? '5000.00' : ''}"></label>
-                            <label>是否到期<select><option></option></select></label>
-                            <label>证件类型<select><option>${loaded ? (customer.idType || '') : ''}</option></select></label>
-                            <label>证件号码<input value="${loaded ? (customer.idNo || '') : ''}"></label>
-                            <label>外汇兑钞水单编号<input value=""></label>
-                            <label>非义务教育证明<select><option></option></select></label>
-                            <label>新凭证种类<select><option></option></select></label>
-                            <label>新存单存折印刷号<input value=""></label>
-                            <label>部提渠利率依正<select class="field-yellow"><option></option></select></label>
-                            <label>部提渠浮动利率加减码符号<select><option></option></select></label>
-                            <label>部提渠浮动利率加减码<input value=""></label>
-                            <label>部提利率<input value="0.00000"></label>
-                            <label>外汇系统业务参考号<input value=""></label>
-                            <label>备注<input value=""></label>
-                            <label>摘要<select><option></option></select></label>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">账户信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('账号', input('accountNo', f.accountNo, { yellow: true }))}
+                                ${field('凭证印刷号', input('printNo', f.printNo, { yellow: true }))}
+                                ${field('册号', input('volumeNo', f.volumeNo, { gray: true, readonly: true }))}
+                                ${field('挂失标志', input('lossFlag', f.lossFlag, { gray: true, readonly: true }))}
+                                ${field('户名', input('customerName', f.customerName, { gray: true, readonly: true }))}
+                                ${field('支取方式', select('payoutMode', f.payoutMode, ['', '现金', '转账'], { gray: false }))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block emphasis-block">
+                            <div class="trade-section-title">交易信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('支取类别', select('withdrawType', f.withdrawType, ['', '到期支取', '提前支取', '部分提前支取'], { yellow: true, emphasize: true }))}
+                                ${field('交易类别', select('tradeType', f.tradeType, ['', '现金支取', '转账支取'], { yellow: true, emphasize: true }))}
+                                ${field('币种', select('currency', f.currency, ['156-CNY 人民币'], { gray: true }))}
+                                ${field('钞汇标志', select('cashFlag', f.cashFlag, ['钞', '汇'], { gray: true }))}
+                                ${field('未通知本金金额', input('unpaidPrincipal', f.unpaidPrincipal))}
+                                ${field('通知存款议定编号', input('noticeNo', f.noticeNo))}
+                                ${field('通知存款支取方式', select('noticeMode', f.noticeMode, ['', '柜面通知', '电话通知']))}
+                                ${field('密码', input('password', f.password, { emphasize: true }))}
+                                ${field('支取金额', input('withdrawAmount', f.withdrawAmount, { yellow: true, emphasize: true }))}
+                                ${field('是否到期', select('maturityFlag', f.maturityFlag, ['', '已到期', '未到期']))}
+                                ${field('证件类型', select('certType', f.certType, ['', '1001-第二代居民身份证']))}
+                                ${field('证件号码', input('certNo', f.certNo))}
+                                ${field('外汇兑钞水单编号', input('exchangeReceiptNo', f.exchangeReceiptNo))}
+                                ${field('非义务教育证明', select('nonCompulsoryEduProof', f.nonCompulsoryEduProof, ['', '否', '是']))}
+                                ${field('新凭证种类', select('newVoucherType', f.newVoucherType, ['', '新存单', '新存折']))}
+                                ${field('新存单存折印刷号', input('newPrintNo', f.newPrintNo))}
+                                ${field('部提某利率依正', select('rateAdjustMode', f.rateAdjustMode, ['', '依正', '依负'], { yellow: true, emphasize: true }))}
+                                ${field('部提浮动利率加减码符号', select('rateAdjustSign', f.rateAdjustSign, ['', '+', '-']))}
+                                ${field('部提浮动利率加减码', input('rateAdjustValue', f.rateAdjustValue))}
+                                ${field('部提利率', input('rateValue', f.rateValue, { gray: true }))}
+                                ${field('外汇系统业务参考号', input('fxBusinessNo', f.fxBusinessNo))}
+                                ${field('备注', input('notes', f.notes))}
+                                ${field('摘要', select('summary', f.summary, ['', '个人定期支取', '现金支取']))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">代理信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('是否代理', select('proxyFlag', hasProxyFilled(f.proxy) ? '是' : '', ['', '是', '否'], { yellow: true }))}
+                                ${field('代理人证件类型', input('proxy.idType', f.proxy.idType, { gray: true, readonly: true }))}
+                                ${field('代理人证件号码', input('proxy.idNo', f.proxy.idNo, { gray: true, readonly: true }), { span: 2 })}
+                                ${field('代理人名称', input('proxy.name', f.proxy.name, { gray: true, readonly: true }))}
+                                ${field('代理人联系方式', input('proxy.phone', f.proxy.phone, { gray: true, readonly: true }))}
+                            </div>
+                        </section>
+                        <section class="trade-section-block">
+                            <div class="trade-section-title">转账信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('收款人账号', input('transfer.receiveAccount', f.transfer.receiveAccount))}
+                                ${field('收款人名称', input('transfer.receiveName', f.transfer.receiveName))}
+                                ${field('收款银行', input('transfer.receiveBank', f.transfer.receiveBank))}
+                                ${field('转账金额', input('transfer.receiveAmount', f.transfer.receiveAmount))}
+                            </div>
+                        </section>
+                        ${renderBottomActions(tab.code)}
+                    </div>
+                    ${renderProxyModal(tab)}
+                </div>
+            `;
+        }
+
+        function render3900Standalone(tab) {
+            return `<div class="trade-page trade-page-single">${renderVerifyDialog(tab, true)}</div>`;
+        }
+
+        function renderLeftCustomerBoard(code, form, summaryRows) {
+            return `
+                <aside class="customer-side-panel">
+                    <div class="customer-side-header">
+                        <img src="/images/customer-avatar.png" alt="客户头像">
+                        <div>
+                            <strong>${form.customerName || '待识别客户'}</strong>
+                            <span>${code} 提交前办理</span>
                         </div>
-                    </section>
-                    <section class="trade-section-block">
-                        <div class="trade-section-title">代理信息</div>
-                        <div class="trade-form-grid form-grid-2col">
-                            <label>是否代理<select class="field-yellow"><option></option></select></label>
-                            <label>代理人证件类型<select><option></option></select></label>
-                            <label class="span-2">代理人证件号码<input value=""></label>
-                            <label>代理人名称<input value=""></label>
-                            <label>代理人联系方式<input value=""></label>
-                        </div>
-                    </section>
-                    <div class="trade-action-row bank-action-row">
-                        <button type="button" class="counter-form-btn">提交</button>
-                        <button type="button" class="counter-form-btn">退出</button>
+                    </div>
+                    <div class="customer-side-actions-grid">
+                        <button type="button" class="counter-mini-btn" data-tab-action="load-customer">读卡带出</button>
+                        <button type="button" class="counter-mini-btn" data-tab-action="open-verify">联网核查</button>
+                        <button type="button" class="counter-mini-btn" data-tab-action="open-proxy">代理人</button>
+                    </div>
+                    <div class="customer-side-summary">
+                        ${summaryRows.map(row => `
+                            <div class="summary-row">
+                                <span>${row.label}</span>
+                                <strong>${row.value}</strong>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="customer-side-hint">客户到达只更新右下角黄色提示框；本页数据需由柜员后续动作带出。</div>
+                </aside>
+            `;
+        }
+
+        function renderOperationBar(code, actions) {
+            return `
+                <div class="trade-operation-bar">
+                    <div class="trade-operation-title">${code} 提交前操作区</div>
+                    <div class="trade-operation-actions">
+                        ${actions.map(item => `<button type="button" class="counter-mini-btn" data-tab-action="${item.action}">${item.label}</button>`).join('')}
                     </div>
                 </div>
             `;
         }
 
-        function renderGenericTradeLayout(tab, customer, loaded) {
+        function renderBottomActions(code) {
             return `
-                <div class="trade-form-shell generic-trade-shell">
-                    <section class="trade-section-block">
-                        <div class="trade-section-title">账户信息</div>
-                        <div class="trade-form-grid form-grid-2col">
-                            <label>客户名称<input value="${loaded ? customer.customerName : ''}" ${loaded ? 'readonly' : ''}></label>
-                            <label>证件号码<input value="${loaded ? (customer.idNo || '') : ''}" ${loaded ? 'readonly' : ''}></label>
-                            <label>交易代码<input class="field-yellow" value="${tab.code}" readonly></label>
-                            <label>交易名称<input value="${tab.name}" readonly></label>
+                <div class="trade-action-row bank-action-row">
+                    <button type="button" class="counter-form-btn">提交</button>
+                    <button type="button" class="counter-form-btn" data-close-trade="${code}">退出</button>
+                </div>
+            `;
+        }
+
+        function renderProxyModal(tab) {
+            if (!tab.ui.proxyOpen) {
+                return '';
+            }
+            const proxy = tab.form.proxy;
+            return `
+                <div class="trade-overlay">
+                    <div class="bank-dialog proxy-dialog">
+                        <div class="bank-dialog-title">A003-代理人信息录入</div>
+                        <div class="trade-section-block dialog-section no-border">
+                            <div class="trade-section-title">代理人信息</div>
+                            <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                                ${field('证件类型', select('proxy.idType', proxy.idType, ['1001-第二代居民身份证', '1002-临时身份证', '1003-中国护照'], { yellow: true, autofocus: true }))}
+                                ${field('证件号码', input('proxy.idNo', proxy.idNo, { yellow: true }))}
+                                ${field('姓名', input('proxy.name', proxy.name, { yellow: true }))}
+                                ${field('性别', select('proxy.gender', proxy.gender, ['', '男', '女'], { yellow: true }))}
+                                ${field('证件有效期止日', input('proxy.expiry', proxy.expiry, { yellow: true }))}
+                                ${field('联系电话', input('proxy.phone', proxy.phone, { yellow: true }))}
+                                ${field('国籍', input('proxy.nationality', proxy.nationality, { yellow: true }))}
+                                ${field('核查结果', input('proxy.result', proxy.result, { gray: true, readonly: true }))}
+                            </div>
                         </div>
-                    </section>
-                    <section class="trade-section-block">
-                        <div class="trade-section-title">交易信息</div>
-                        <div class="trade-form-grid form-grid-2col">
-                            <label>受理主题<input class="field-yellow" value="${tab.theme || ''}" readonly></label>
-                            <label>目标介质<input value="${state.customerState.intent?.targetDescription || ''}"></label>
-                            <label>金额<input value="${state.customerState.intent?.cashAmount || ''}"></label>
-                            <label>备注<input value=""></label>
+                        <div class="trade-action-row bank-action-row dialog-actions">
+                            <button type="button" class="counter-form-btn" data-tab-action="save-proxy">提交</button>
+                            <button type="button" class="counter-form-btn" data-tab-action="close-proxy">退出</button>
                         </div>
-                    </section>
-                    <div class="trade-action-row bank-action-row">
-                        <button type="button" class="counter-form-btn">提交</button>
-                        <button type="button" class="counter-form-btn">退出</button>
                     </div>
                 </div>
             `;
+        }
+
+        function renderVerifyModal(tab) {
+            if (tab.code !== '3900' && tab.ui.verifyStage !== 'entry' && tab.ui.verifyStage !== 'result') {
+                return '';
+            }
+            if (tab.code === '3900' || tab.ui.verifyStage === 'entry' || tab.ui.verifyStage === 'result') {
+                return '';
+            }
+            return '';
+        }
+
+        function renderVerifyDialog(tab, standalone = false) {
+            const verify = tab.code === '3900' ? tab.form : tab.form.verify;
+            const actionPrefix = standalone ? '3900-' : '';
+            const fieldPrefix = standalone ? '' : 'verify.';
+            if (tab.ui.verifyStage === 'result') {
+                return `
+                    <div class="bank-dialog verify-dialog ${standalone ? 'standalone-dialog' : ''}">
+                        <div class="bank-dialog-title">3900-联网核查</div>
+                        <div class="verify-result-grid">
+                            <section>
+                                <h4>身份证信息</h4>
+                                <img src="${verify.identityPhoto || '/images/customer-avatar.png'}" alt="身份证照片">
+                                <div class="verify-card-fields">
+                                    ${verifyResultRow('姓名', verify.customerName)}
+                                    ${verifyResultRow('证件号码', verify.idNo)}
+                                    ${verifyResultRow('签发机关', verify.authority)}
+                                    ${verifyResultRow('有效期限', verify.validUntil)}
+                                </div>
+                            </section>
+                            <section>
+                                <h4>人行核查信息</h4>
+                                <img src="${verify.verifyPhoto || '/images/customer-avatar.png'}" alt="联网核查照片">
+                                <div class="verify-card-fields">
+                                    ${verifyResultRow('姓名', verify.customerName)}
+                                    ${verifyResultRow('证件号码', verify.idNo)}
+                                    ${verifyResultRow('签发机关', '此项暂不返回核查结果')}
+                                    ${verifyResultRow('有效期限', verify.validUntil)}
+                                </div>
+                            </section>
+                        </div>
+                        <div class="verify-result-footer">
+                            <label class="verify-result-select"><span>核查结果</span>${select(`${fieldPrefix}checkResult`, verify.checkResult, ['00-身份证号码与姓名一致并存在照片'])}</label>
+                            <div class="trade-action-row bank-action-row dialog-actions">
+                                <button type="button" class="counter-form-btn">维护客户头像</button>
+                                <button type="button" class="counter-form-btn">打印</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify">关闭</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return `
+                <div class="bank-dialog verify-dialog ${standalone ? 'standalone-dialog' : ''}">
+                    <div class="bank-dialog-title">3900-联网核查</div>
+                    <div class="verify-entry-form">
+                        <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
+                            ${field('证件类型', select(`${fieldPrefix}idType`, verify.idType, ['1001-第二代居民身份证', '1002-临时身份证'], { yellow: true, autofocus: true }))}
+                            ${field('证件号码', input(`${fieldPrefix}idNo`, verify.idNo, { yellow: true }))}
+                            ${field('客户名称', input(`${fieldPrefix}customerName`, verify.customerName, { yellow: true }))}
+                            ${field('业务种类', select(`${fieldPrefix}businessType`, verify.businessType, ['01-银行卡业务', '02-存款业务', '03-支取业务'], { yellow: true }))}
+                        </div>
+                    </div>
+                    <div class="trade-action-row bank-action-row dialog-actions">
+                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}submit-verify">提交</button>
+                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify">退出</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function verifyResultRow(labelText, value) {
+            return `<label><span>${labelText}</span><input value="${escapeHtml(value || '')}" readonly></label>`;
         }
 
         function bindTradeStageActions(activeTab) {
-            const loadCustomerZones = tradeStage.querySelectorAll('[data-load-customer]');
-            loadCustomerZones.forEach(button => {
-                button.addEventListener('click', () => {
-                    button.closest('.customer-load-placeholder')?.classList.add('hidden');
-                    tradeStage.querySelector('.customer-loaded-board')?.classList.remove('hidden');
-                });
+            bindFieldChanges(activeTab);
+            bindEnterAdvance(tradeStage);
+
+            tradeStage.querySelectorAll('[data-close-trade]').forEach(button => {
+                button.addEventListener('click', () => closeTrade(activeTab.id));
             });
+
+            tradeStage.querySelectorAll('[data-tab-action]').forEach(button => {
+                button.addEventListener('click', () => handleTabAction(activeTab, button.dataset.tabAction));
+            });
+        }
+
+        function bindFieldChanges(tab) {
+            tradeStage.querySelectorAll('[data-field]').forEach(fieldNode => {
+                fieldNode.addEventListener('input', event => setFormValue(tab.form, fieldNode.dataset.field, event.target.value));
+                fieldNode.addEventListener('change', event => setFormValue(tab.form, fieldNode.dataset.field, event.target.value));
+            });
+        }
+
+        function handleTabAction(tab, action) {
+            switch (action) {
+                case 'load-customer':
+                case 'load-account':
+                case 'load-certificate':
+                case 'load-deposit-slip':
+                    hydrateFormFromCustomer(tab, action);
+                    break;
+                case 'open-proxy':
+                    tab.ui.proxyOpen = true;
+                    renderTabs();
+                    return;
+                case 'close-proxy':
+                    tab.ui.proxyOpen = false;
+                    renderTabs();
+                    return;
+                case 'save-proxy':
+                    tab.ui.proxyOpen = false;
+                    tab.form.proxy.result = '已录入';
+                    renderTabs();
+                    return;
+                case 'open-verify':
+                    openVerifyForTrade(tab);
+                    return;
+                case '3900-submit-verify':
+                    tab.ui.verifyStage = 'result';
+                    renderTabs();
+                    return;
+                case '3900-close-verify':
+                    closeTrade(tab.id);
+                    return;
+                default:
+                    break;
+            }
+            renderTabs();
+        }
+
+        function openVerifyForTrade(tab) {
+            const definition = getTradeDefinition('3900');
+            const existing = state.tabs.find(item => item.code === '3900');
+            const verifyData = buildVerifyFromCustomer(tab);
+            if (existing) {
+                existing.form = { ...existing.form, ...verifyData };
+                existing.ui.verifyStage = 'entry';
+                state.activeTabId = existing.id;
+            } else {
+                const verifyTab = createTabState(definition, '3900');
+                verifyTab.form = { ...verifyTab.form, ...verifyData };
+                verifyTab.ui.verifyStage = 'entry';
+                state.tabs.push(verifyTab);
+                state.activeTabId = verifyTab.id;
+            }
+            persistTabs();
+            renderTabs();
+        }
+
+        function buildVerifyFromCustomer(tab) {
+            const customer = state.customerState.customer;
+            return {
+                idNo: tab.form.idNo || tab.form.certNo || customer?.idNo || '',
+                customerName: tab.form.customerName || customer?.customerName || '',
+                idType: tab.form.idType || tab.form.certType || '1001-第二代居民身份证',
+                businessType: tab.code === '1062' ? '03-支取业务' : (tab.code === '1651' ? '02-存款业务' : '01-银行卡业务')
+            };
+        }
+
+        function hydrateFormFromCustomer(tab, trigger) {
+            const customer = state.customerState.customer;
+            const intent = state.customerState.intent;
+            if (!customer) {
+                return;
+            }
+            if (tab.code === '1061') {
+                Object.assign(tab.form, {
+                    accountNo: customer.accounts?.[0]?.accountNo || '6223203383167776',
+                    cardNo: customer.mediaDetails?.[0]?.mediumNo || '6223203383167776',
+                    customerName: customer.customerName || '',
+                    idType: customer.idType || '1001-第二代居民身份证',
+                    idNo: customer.idNo || '',
+                    currentBalance: '500000.00',
+                    voucherNo: customer.mediaDetails?.[0]?.voucherNo || '3010000001',
+                    depositAmount: trigger === 'load-customer' ? '' : (intent?.cashAmount || '')
+                });
+            } else if (tab.code === '1062') {
+                Object.assign(tab.form, {
+                    accountNo: customer.accounts?.[0]?.accountNo || '6223203383167776',
+                    mediumNo: customer.mediaDetails?.[0]?.mediumNo || '6223203383167776',
+                    customerName: customer.customerName || '',
+                    idType: customer.idType || '1001-第二代居民身份证',
+                    idNo: customer.idNo || '',
+                    availableBalance: '500000.00',
+                    voucherNo: customer.mediaDetails?.[0]?.voucherNo || '6223203383167776',
+                    withdrawAmount: trigger === 'load-account' ? '' : (intent?.cashAmount || '')
+                });
+            } else if (tab.code === '1651') {
+                Object.assign(tab.form, {
+                    certType: customer.idType || '1001-第二代居民身份证',
+                    certNo: customer.idNo || '',
+                    customerName: customer.customerName || '',
+                    mobile: customer.mobilePhone || customer.phone || '15618911182'
+                });
+            } else if (tab.code === '1657') {
+                Object.assign(tab.form, {
+                    accountNo: customer.accounts?.[0]?.accountNo || '916110000010579378500',
+                    printNo: customer.mediaDetails?.find(item => item.mediumType === '存单')?.voucherNo || '6232303383167776',
+                    customerName: customer.customerName || '',
+                    certType: customer.idType || '1001-第二代居民身份证',
+                    certNo: customer.idNo || '',
+                    withdrawAmount: trigger === 'load-deposit-slip' ? '' : (intent?.cashAmount || '')
+                });
+            }
         }
 
         function renderCustomerCard() {
@@ -475,6 +1039,7 @@
                     <div><span>是否携带现金</span><strong>${intent?.carriesCash ? '是' : '否'}</strong></div>
                     <div><span>携带现金金额</span><strong>${intent?.carriesCash ? formatAmount(intent.cashAmount) : '--'}</strong></div>
                 </div>
+                <div class="customer-card-hint">点击“客户到达”仅在此处生成客户与诉求提示，不自动灌入交易页，也不自动弹出刷卡/核查/代理人页面。</div>
                 <div class="customer-card-actions bank-customer-actions">
                     <button type="button" class="counter-form-btn ${hasCustomer ? 'is-disabled' : ''}" id="customer-arrive-btn" ${hasCustomer ? 'disabled' : ''}>客户到达</button>
                     <button type="button" class="counter-form-btn ${!hasCustomer ? 'is-disabled' : ''}" id="customer-switch-btn" ${!hasCustomer ? 'disabled' : ''}>更换客户</button>
@@ -492,10 +1057,78 @@
                 const nextState = await response.json();
                 state.customerState = normalizeCustomerState(nextState);
                 renderCustomerCard();
-                renderTabs();
             } catch (error) {
                 floatingCardStatus.textContent = '操作失败';
             }
+        }
+
+        function bindEnterAdvance(root) {
+            const editableSelector = 'input:not([type="hidden"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled]), button[data-enter-target="true"]';
+            root.querySelectorAll(editableSelector).forEach(node => {
+                node.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter' || event.shiftKey || event.target.tagName === 'TEXTAREA') {
+                        return;
+                    }
+                    event.preventDefault();
+                    const nodes = Array.from(root.querySelectorAll(editableSelector)).filter(item => item.offsetParent !== null);
+                    const currentIndex = nodes.indexOf(event.target);
+                    const next = nodes.slice(currentIndex + 1).find(item => !item.closest('.hidden'));
+                    if (next) {
+                        next.focus();
+                        if (next.select) {
+                            next.select();
+                        }
+                    }
+                });
+            });
+        }
+
+        function focusFirstEditableField() {
+            requestAnimationFrame(() => {
+                const first = tradeStage.querySelector('[autofocus], input:not([type="hidden"]):not([readonly]):not([disabled]), select:not([disabled]), textarea:not([readonly]):not([disabled])');
+                if (first) {
+                    first.focus();
+                    if (first.select) {
+                        first.select();
+                    }
+                }
+            });
+        }
+
+        function setFormValue(target, path, value) {
+            const segments = path.split('.');
+            let cursor = target;
+            segments.slice(0, -1).forEach(segment => {
+                if (!cursor[segment]) {
+                    cursor[segment] = {};
+                }
+                cursor = cursor[segment];
+            });
+            cursor[segments.at(-1)] = value;
+        }
+
+        function field(labelText, control, options = {}) {
+            const classNames = [options.span === 2 ? 'span-2' : '', options.emphasize ? 'field-emphasis' : ''].filter(Boolean).join(' ');
+            return `<label class="${classNames}"><span>${labelText}</span>${control}</label>`;
+        }
+
+        function input(name, value = '', options = {}) {
+            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : ''].filter(Boolean).join(' ');
+            return `<input data-field="${name}" class="${classes}" value="${escapeHtml(value || '')}" ${options.readonly ? 'readonly' : ''} ${options.autofocus ? 'autofocus' : ''} ${options.placeholder ? `placeholder="${escapeHtml(options.placeholder)}"` : ''} ${options.type ? `type="${options.type}"` : 'type="text"'}>`;
+        }
+
+        function select(name, value = '', values = [], options = {}) {
+            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : ''].filter(Boolean).join(' ');
+            const normalizedValues = values.length ? values : [''];
+            return `
+                <select data-field="${name}" class="${classes}" ${options.autofocus ? 'autofocus' : ''} ${options.readonly ? 'disabled' : ''}>
+                    ${normalizedValues.map(item => `<option value="${escapeHtml(item)}" ${item === value ? 'selected' : ''}>${item}</option>`).join('')}
+                </select>
+            `;
+        }
+
+        function hasProxyFilled(proxy) {
+            return Boolean(proxy && (proxy.name || proxy.idNo || proxy.phone));
         }
 
         function formatAmount(value) {
@@ -569,7 +1202,13 @@
         function clamp(value, min, max) {
             return Math.min(Math.max(value, min), max);
         }
-
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;');
+        }
         function safeJsonParse(raw, fallback) {
             try {
                 return raw ? JSON.parse(raw) : fallback;
