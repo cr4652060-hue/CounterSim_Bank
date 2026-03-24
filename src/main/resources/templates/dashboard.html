@@ -207,10 +207,15 @@
                         idNo: '',
                         currentBalance: '',
                         depositAmount: '',
-                        cashSource: '1-现金',
+                        cashSource: '',
+                        currency: '',
+                        cashFlag: '',
                         summary: '',
                         notes: '',
                         voucherNo: '',
+                        feeMode: '',
+                        proxyFlag: '',
+                        accountNature: '',
                         accountType: '个人活期',
                         proxy: { ...commonProxy },
                         verify: { ...common3900 }
@@ -226,8 +231,8 @@
                         availableBalance: '',
                         withdrawAmount: '',
                         password: '',
-                        cashFlag: '0-钞',
-                        currency: '156-CNY人民币',
+                        cashFlag: '',
+                        currency: '',
                         summary: '',
                         notes: '',
                         voucherNo: '',
@@ -237,9 +242,9 @@
                         accountBranchNo: '',
                         accountSubSeq: '',
                         withdrawMode: '',
-                        feeMode: '1-现金',
+                        feeMode: '',
                         feeAmount: '',
-                        proxyFlag: 'N-否',
+                        proxyFlag: '',
                         accountNature: '',
                         ledgerFlag: '0-无',
                         proxy: { ...commonProxy },
@@ -247,30 +252,47 @@
                     };
                 case '1651':
                     return {
-                        certType: '1001-第二代居民身份证',
+                        certType: '',
                         certNo: '',
                         customerName: '',
                         mobile: '',
+                        customerNo: '',
                         depositType: '整存整取',
-                        term: '1年',
+                        term: '',
                         amount: '',
-                        rateType: '挂牌利率',
+                        rateType: '',
                         transferAccount: '',
                         printNo: '',
-                        cashSource: '1-现金',
+                        tradeCategory: '',
+                        currency: '',
+                        productCode: '',
+                        transferFlag: '',
+                        transferMode: '',
+                        interestAccount: '',
+                        interBankFlag: '',
+                        withdrawMode: '',
+                        password: '',
+                        depositPrintNo: '',
+                        voucherType: '',
+                        startDate: '',
+                        floatRate: '',
+                        summary: '',
                         notes: '',
+                        proxyFlag: '',
+                        accountNo: '',
+                        accountBalance: '',
                         verify: { ...common3900 },
                         proxy: { ...commonProxy }
                     };
                 case '1657':
                     return {
-                        passbookFlag: '0-存单',
+                        passbookFlag: '',
                         accountNo: '',
                         volumeNo: '',
                         printNo: '',
                         lossFlag: '',
                         customerName: '',
-                        payoutMode: '现金',
+                        payoutMode: '',
                         withdrawType: '',
                         tradeType: '',
                         currency: '156-CNY 人民币',
@@ -672,7 +694,7 @@
                                 ${field('账户序号', input('accountSubSeq', f.accountSubSeq, { gray: true, readonly: true }))}
                                 ${field('户名', input('customerName', f.customerName, { gray: true, readonly: true }))}
                                 ${field('支取方式', select('withdrawMode', f.withdrawMode, ['', '0001-凭密码'], { gray: true, readonly: true }))}
-                                ${field('币种', select('currency', f.currency, ['156-CNY人民币'], { yellow: true, required: true, navType: 'select' }))}
+                                ${field('币种', select('currency', f.currency, ['','156-CNY人民币'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('密码', input('password', f.password, { yellow: true, navType: 'password', placeholder: '回车触发密码输入模拟' }))}
                                 ${field('金额', input('withdrawAmount', f.withdrawAmount, { yellow: true, required: true, navType: 'input' }))}
                                 ${field('钞汇标志', select('cashFlag', f.cashFlag, ['0-钞', '1-汇'], { yellow: true, required: true, navType: 'select' }))}
@@ -681,14 +703,14 @@
                                 ${field('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('备注', input('notes', f.notes, { navType: 'input' }))}
                                 ${field('外汇系统业务参考号', input('fxBusinessNo', f.fxBusinessNo, { navType: 'input' }))}
-                                ${field('通存通兑手续费收取方式', select('feeMode', f.feeMode, ['1-现金', '2-转账'], { yellow: true, required: true, navType: 'select' }))}
+                                ${field('通存通兑手续费收取方式', select('feeMode', f.feeMode, ['', '1-现金', '2-转账'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('通存通兑手续费金额', input('feeAmount', f.feeAmount, { gray: true, readonly: true }))}
                             </div>
                         </section>
                         <section class="trade-section-block bank-section-1062-sub">
                             <div class="trade-section-title">代理人信息</div>
                             <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid">
-                                ${field('是否代理', select('proxyFlag', f.proxyFlag || 'N-否', ['N-否', 'Y-是'], { yellow: true, required: true, navType: 'select' }))}
+                                ${field('是否代理', select('proxyFlag', f.proxyFlag, ['', 'N-否', 'Y-是'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('代理人证件类型', input('proxy.idType', f.proxy.idType, { gray: true, readonly: true }))}
                                 ${field('代理人名称', input('proxy.name', f.proxy.name, { gray: true, readonly: true }))}
                                 ${field('代理人证件号码', input('proxy.idNo', f.proxy.idNo, { gray: true, readonly: true }))}
@@ -742,7 +764,7 @@
                          <section class="trade-section-block">
                             <div class="trade-section-title">代理信息</div>
                             <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid form-1657-grid">
-                                ${field('是否代理', select('proxyFlag', f.proxyFlag || '', ['','N-否', 'Y-是' ], { yellow: true, required: true, navType: 'select' }))}
+                                ${field('是否代理', select('proxyFlag', f.proxyFlag, ['', 'N-否', 'Y-是' ], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('代理人证件类型', input('proxy.idType', f.proxy.idType, { gray: true, readonly: true }))}
                                 ${field('代理人证件号码', input('proxy.idNo', f.proxy.idNo, { gray: true, readonly: true }), { span: 2 })}
                                 ${field('代理人名称', input('proxy.name', f.proxy.name, { gray: true, readonly: true }))}
@@ -765,7 +787,7 @@
                         ${renderInlineMessage(tab)}
                         <div class="form-line compact-line deposit-flag-line">
                             <label>是否存折</label>
-                            ${select('passbookFlag', f.passbookFlag, ['0-存单', '1-存折'], { yellow: true, required: true, navType: 'select', autofocus: true })}
+                            ${select('passbookFlag', f.passbookFlag, ['','0-存单', '1-存折'], { yellow: true, required: true, navType: 'select', autofocus: true })}
                         </div>
                         <section class="trade-section-block">
                             <div class="trade-section-title">账户信息</div>
