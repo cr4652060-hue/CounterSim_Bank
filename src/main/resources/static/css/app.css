@@ -763,6 +763,48 @@ textarea { resize: vertical; min-height: 98px; }
 .trade-page-bankform {
     padding: 0;
 }
+.trade-page-three-col {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 10px;
+}
+.trade-center-column {
+    min-width: 0;
+}
+.trade-right-column {
+    border: 1px solid #d4dfeb;
+    background: #f7fbff;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.trade-right-block {
+    border: 1px solid #d6e3f1;
+    background: #fff;
+    padding: 8px;
+}
+.trade-right-title {
+    font-size: 12px;
+    color: #4d6580;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+.trade-right-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: #5c738e;
+    padding: 2px 0;
+}
+.trade-right-row strong {
+    color: #324f72;
+}
+.trade-right-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
 .bank-form-main {
     padding: 8px 14px 18px;
 }

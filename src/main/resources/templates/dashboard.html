@@ -86,7 +86,7 @@
             { code: '1062', name: '个人活期存款现金支取', keywords: ['1062', '支取', '取款', '活期'], kind: 'trade' },
             { code: '1651', name: '个人定期存款开户', keywords: ['1651', '定期开户', '存单开户'], kind: 'trade' },
             { code: '1657', name: '个人定期存款支取', keywords: ['1657', '定期支取', '存单支取'], kind: 'trade' },
-            { code: '0055', name: '柜员库箱查询/打印', keywords: ['1657', '柜员库箱', '库箱'], kind: 'trade' }
+            { code: '0055', name: '柜员库箱查询/打印', keywords: ['0055', '柜员库箱', '库箱'], kind: 'trade' }
         ];
 
         const STORAGE_KEYS = {
@@ -199,9 +199,7 @@
                         tellerNo: '',
                         targetAccountNo: '',
                         targetVoucherNo: '',
-                        customerName: '',
                         idNo: '',
-                        requestDisplay: ''
                     };
                 case '3900':
                     return {
@@ -529,7 +527,32 @@
         }
 
 
+
+
         function renderSidebarPanel(activeTab) {
+            if (activeTab && activeTab.code === '0055') {
+                return `
+                    <div class="sidebar-mode sidebar-mode-default">
+                        <section class="sidebar-panel queue-panel sidebar-panel-block">
+                            <div class="queue-panel-main">
+                                <div class="queue-metrics">
+                                    <div><span>柜员号:</span><strong>${escapeHtml(state.teller?.tellerCode || '--')}</strong></div>
+                                    <div><span>库箱号:</span><strong>106</strong></div>
+                                    <div><span>查询交易:</span><strong>0055</strong></div>
+                                    <div><span>状态:</span><strong>查询中</strong></div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="sidebar-panel info-panel sidebar-panel-block">
+                            <div class="panel-caption">库箱查询提示</div>
+                            <div class="sidebar-placeholder-body">
+                                <div>0055 为柜员库箱查询/打印页面。</div>
+                                <div>本页不显示客户信息，不执行客户带出。</div>
+                            </div>
+                        </section>
+                    </div>
+                `;
+            }
             if (!activeTab || !['3900', '1062', '1657','1061','1651','0055'].includes(activeTab.code) || !activeTab.ui.customerLoaded) {
                 return `
                     <div class="sidebar-mode sidebar-mode-default">
@@ -650,6 +673,8 @@
         function render1061(tab) {
             const f = tab.form;
             return `
+  <div class="trade-page trade-page-bankform trade-page-three-col">
+                    <div class="trade-center-column">
 <!--                <section class="trade-section-block">-->
                  <div class="trade-page trade-page-bankform">
                             <div class="trade-section-title">账户信息</div>
@@ -657,8 +682,8 @@
                                 ${field('交易类别', select('withdrawMode', f.withdrawMode, ['', '1-现金'], { gray: true, readonly: true }))}
                                 ${field('币种', select('currency', f.currency, ['156-CNY人民币'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('钞汇标志', select('cashFlag', f.cashFlag, ['0-钞', '1-汇'], { yellow: true, required: true, navType: 'select' }))}
-                                ${field('金额')}
-                                ${field('账号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, placeholder: '请输入账号或读卡后带出' }))}
+                                ${field('金额',select('amount',f.amount,{yellow:true,autofocus: true, required: true, navType: 'select' }))}
+                                ${field('账号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, required: true, navType: 'lookup-1061', placeholder: '请输入账号后回车带出客户' }))}
                                 ${field('客户账号', input('accountNo', f.accountNo, { gray: true, readonly: true }))}
                                 ${field('卡号/折号', input('cardNo', f.cardNo, { placeholder: '支持鼠标点选修改' }))}
                                 ${field('客户名称', input('customerName', f.customerName, { readonly: true, gray: true }))}
@@ -690,6 +715,7 @@
                         </section>
                         ${renderBottomActions(tab.code)}
                     </div>
+                     ${renderRightAssistPanel(tab)}
                     ${renderProxyModal(tab)}
                     ${renderVerifyModal(tab)}
                        ${renderReadIdDialog(tab)}
@@ -706,24 +732,12 @@
                         ${renderInlineMessage(tab)}
                         <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid form-3900-grid">
                             ${field('查询类型', select('queryType', f.queryType || '', ['', '1-现金/现钞', '2-凭证'], {
-                yellow: true,
-                required: true,
-                navType: 'select',
-                autofocus: true
-            }))}
+                yellow: true,  required: true,  navType: 'select',   autofocus: true   }))}
                             ${field('柜员号', input('tellerNo', f.tellerNo || (state.teller?.tellerCode || ''), {
                 yellow: true,
                 navType: 'input'
             }))}
-                            ${field('目标账号', input('targetAccountNo', f.targetAccountNo || '', {
-                yellow: true,
-                navType: 'lookup-0055',
-                placeholder: '回车按当前黄框客户带出'
-            }))}
-                            ${field('目标凭证号', input('targetVoucherNo', f.targetVoucherNo || '', {
-                yellow: true,
-                navType: 'lookup-0055'
-            }))}
+
                         </div>
                         ${renderBottomActions(tab.code)}
                     </div>
@@ -734,8 +748,8 @@
         function render1062(tab) {
             const f = tab.form;
             return `
-                <div class="trade-page trade-page-bankform">
-                    <div class="trade-main-panel bank-form-main trade-1062-shell">
+               <div class="trade-page trade-page-bankform trade-page-three-col">
+                    <div class="trade-main-panel bank-form-main trade-1062-shell trade-center-column">
                         <section class="trade-section-block bank-section-1062">
                             <div class="trade-section-title">账户信息</div>
                             <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid form-1062-grid">
@@ -771,7 +785,7 @@
                                 ${field('代理人名称', input('proxy.name', f.proxy.name, { gray: true, readonly: true }))}
                                 ${field('代理人证件号码', input('proxy.idNo', f.proxy.idNo, { gray: true, readonly: true }))}
                                 ${field('代理人联系方式', input('proxy.phone', f.proxy.phone, { gray: true, readonly: true }))}
-                                ${field('代理说明', input('proxyHint', '本轮不进入代理提交后流程', { gray: true, readonly: true }))}
+
                             </div>
                         </section>
                         <section class="trade-section-block bank-section-1062-sub">
@@ -785,6 +799,7 @@
                         </section>
                         ${renderBottomActions(tab.code)}
                     </div>
+                     ${renderRightAssistPanel(tab)}
                     ${renderMediumDialog(tab)}
                     ${renderPasswordDialog(tab)}
                 </div>
@@ -795,6 +810,8 @@
         function render1651(tab) {
             const f = tab.form;
             return `
+  <div class="trade-page trade-page-bankform trade-page-three-col">
+                    <div class="trade-center-column">
                  <section class="trade-section-block">
                             <div class="trade-section-title">客户信息</div>
                             <div class="trade-form-grid form-grid-2col bank-form-grid dense-grid">
@@ -830,6 +847,7 @@
                         </section>
                         ${renderBottomActions(tab.code)}
                     </div>
+                     ${renderRightAssistPanel(tab)}
                     ${renderProxyModal(tab)}
                     ${renderVerifyModal(tab)}
                 </div>
@@ -839,8 +857,8 @@
         function render1657(tab) {
             const f = tab.form;
             return `
-               <div class="trade-page trade-page-bankform">
-                    <div class="trade-main-panel bank-form-main trade-1657-shell">
+               <div class="trade-page trade-page-bankform trade-page-three-col">
+                    <div class="trade-main-panel bank-form-main trade-1657-shell trade-center-column">
                         ${renderInlineMessage(tab)}
                         <div class="form-line compact-line deposit-flag-line">
                             <label>是否存折</label>
@@ -908,6 +926,7 @@
                         </section>
                         ${renderBottomActions(tab.code)}
                     </div>
+                      ${renderRightAssistPanel(tab)}
                     ${renderPasswordDialog(tab)}
                 </div>
             `;
@@ -987,6 +1006,29 @@
                     <button type="button" class="counter-form-btn" data-tab-action="pre-submit" data-enter-target="true" data-button-group="submit-exit" data-button-index="0">提交</button>
                     <button type="button" class="counter-form-btn" data-close-trade="${code}" data-enter-target="true" data-button-group="submit-exit" data-button-index="1">退出</button>
                 </div>
+            `;
+        }
+
+        function renderRightAssistPanel(tab) {
+            if (!['1061', '1062', '1651', '1657'].includes(tab.code)) {
+                return '';
+            }
+            return `
+                <aside class="trade-right-column">
+                    <section class="trade-right-block">
+                        <div class="trade-right-title">辅助提示</div>
+                        <div class="trade-right-row"><span>交易码</span><strong>${escapeHtml(tab.code)}</strong></div>
+                        <div class="trade-right-row"><span>交易状态</span><strong>${tab.ui.customerLoaded ? '客户已带出' : '待带出客户'}</strong></div>
+                        <div class="trade-right-row"><span>待提交</span><strong>0</strong></div>
+                    </section>
+                    <section class="trade-right-block">
+                        <div class="trade-right-title">交易操作</div>
+                        <div class="trade-right-actions">
+                            <button type="button" class="counter-form-btn" data-enter-target="true" data-button-group="right-actions" data-button-index="0">待提交</button>
+                            <button type="button" class="counter-form-btn" data-close-trade="${tab.code}" data-enter-target="true" data-button-group="right-actions" data-button-index="1">退出交易</button>
+                        </div>
+                    </section>
+                </aside>
             `;
         }
 
@@ -1218,20 +1260,7 @@
                         }
                     });
                 }
-                if (node.dataset.navType === 'id-read') {
-                    node.addEventListener('focus', () => {
-                        if (tab.code === '3900' && !tab.ui.readingIdCard && !tab.form.idNo && tab.form.idType === '1001-第二代居民身份证') {
-                            start3900IdRead(tab);
-                        }
-                    });
-                }
-                if (node.dataset.navType === '1651-id-read') {
-                    node.addEventListener('focus', () => {
-                        if (tab.code === '1651' && tab.form.certType && !tab.form.certNo && !tab.ui.readingIdCard) {
-                            start1651To3900Link(tab);
-                        }
-                    });
-                }
+
                 if (node.dataset.navType === 'lookup-1657') {
                     node.addEventListener('blur', () => {
                         if (tab.code === '1657' && (tab.form.printNo || tab.form.accountNo) && !tab.ui.customerLoaded) {
@@ -1278,6 +1307,17 @@
                 if (attempt1657Lookup(tab)) {
                     renderTabs();
                     requestAnimationFrame(() => focusField('withdrawType'));
+                } else {
+                    renderTabs();
+                    requestAnimationFrame(() => focusField(node.dataset.field));
+                }
+                return;
+            }
+            if (node.dataset.navType === 'lookup-1061') {
+                event.preventDefault();
+                if (attempt1061Lookup(tab)) {
+                    renderTabs();
+                    requestAnimationFrame(() => focusField('depositAmount'));
                 } else {
                     renderTabs();
                     requestAnimationFrame(() => focusField(node.dataset.field));
@@ -1333,6 +1373,20 @@
                 }
             }
             if (node.dataset.navType === 'id-read' && !tab.form.idNo) {
+                event.preventDefault();
+                if (!tab.ui.readingIdCard) {
+                    start3900IdRead(tab);
+                }
+                return;
+            }
+            if (node.dataset.navType === '1651-id-read' && !tab.form.certNo) {
+                event.preventDefault();
+                if (!tab.ui.readingIdCard) {
+                    start1651To3900Link(tab);
+                }
+                return;
+            }
+            if (node.dataset.required === 'true' && !String(node.value || '').trim()) {
                 event.preventDefault();
                 return;
             }
@@ -1458,28 +1512,20 @@
         }
 
         function confirmMediumDialog(tab) {
-            const currentCustomer = state.customerState.customer;
+
             const mediumInput = (tab.ui.mediumDialogValue || '').trim();
-            if (!currentCustomer) {
-                tab.ui.mediumDialogError = '当前黄框没有客户，无法带出。';
-                renderTabs();
-                return;
-            }
+
             if (!mediumInput) {
                 tab.ui.mediumDialogError = tab.ui.mediumDialogMode === '1062' ? '请输入介质号码。' : '请输入凭证印刷号。';
                 renderTabs();
                 return;
             }
             if (tab.ui.mediumDialogMode === '1062') {
-                const matched = (currentCustomer.mediaDetails || []).find(item => item.mediumNo === mediumInput);
-                if (!matched) {
-                    tab.ui.mediumDialogError = '未在当前黄框客户下找到该介质号码，请核对后重试。';
-                    renderTabs();
-                    return;
-                }
-                hydrateFormFromResolvedMedium(tab, currentCustomer, matched);
+                const matched = createMockMediumByInput(mediumInput);
+                const customer = createMockCustomerById(matched.idNo);
+                hydrateFormFromResolvedMedium(tab, customer, matched);
                 tab.ui.nextFocusField = 'currency';
-                tab.ui.inlineMessage = '已通过介质号带出当前客户，可继续录入支取金额、摘要、密码等信息。';
+
             }
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
@@ -1487,7 +1533,7 @@
         }
 
         function hydrateFormFromResolvedMedium(tab, customer, medium) {
-            const intent = state.customerState.intent;
+
             Object.assign(tab.form, {
                 accountNo: medium.customerAccountNo || '',
                 mediumNo: medium.mediumNo || '',
@@ -1497,7 +1543,7 @@
                 accountType: medium.accountCategory || '1-类',
                 availableBalance: medium.balanceAmount ? Number(medium.balanceAmount).toFixed(2) : '',
                 voucherNo: medium.voucherNo || medium.mediumNo || '',
-                withdrawAmount: intent?.cashAmount || '',
+
                 withdrawMode: '0001-凭密码',
                 accountNature: medium.accountCategory || '',
                 volumeNo: medium.mediumSubType || '',
@@ -1511,62 +1557,53 @@
         }
 
         function attempt1657Lookup(tab) {
-            const customer = state.customerState.customer;
+
             const value = (tab.form.printNo || tab.form.accountNo || '').trim();
             if (!value) {
-                return true;
-            }
-            if (!customer) {
-                tab.ui.inlineMessage = '当前黄框没有客户，无法按凭证印刷号带出。';
                 return false;
             }
-            const matched = (customer.mediaDetails || []).find(item => item.voucherNo === value || item.mediumNo === value || item.customerAccountNo === value);
-            if (!matched) {
-                tab.ui.inlineMessage = '凭证印刷号/账号与当前黄框客户不一致，未带出客户信息。';
-                return false;
-            }
+            const matched = createMockMediumByInput(value);
             Object.assign(tab.form, {
                 accountNo: matched.customerAccountNo || tab.form.accountNo,
                 printNo: matched.voucherNo || matched.mediumNo || tab.form.printNo,
                 volumeNo: matched.mediumSubType || '01',
                 lossFlag: matched.mediaStatus || '正常',
-                customerName: customer.customerName || '',
+                customerName: matched.customerName || '',
                 payoutMode: '现金',
-                certType: customer.idType || '',
-                certNo: customer.idNo || '',
-                withdrawAmount: state.customerState.intent?.cashAmount || '',
+                certType: matched.idType || '',
+                certNo: matched.idNo || '',
                 tradeType: '',
                 withdrawType: ''
             });
             tab.ui.customerLoaded = true;
-            tab.ui.inlineMessage = '已按当前黄框客户的凭证印刷号带出存单信息，可继续录入支取类别、交易类别、金额和密码。';
             return true;
         }
 
 
         function attempt0055Lookup(tab) {
-            const customer = state.customerState.customer;
-            const intent = state.customerState.intent;
-            if (!customer) {
-                tab.ui.inlineMessage = '当前黄框没有客户，0055 无法带出客户信息。';
-                tab.ui.customerLoaded = false;
+            if (!tab.form.queryType || (!tab.form.targetAccountNo && !tab.form.targetVoucherNo)) {
+                return true;
+            }
+            return true;
+        }
+
+        function attempt1061Lookup(tab) {
+            const value = (tab.form.accountNo || '').trim();
+            if (!value) {
                 return false;
             }
-            const accountMatched = !tab.form.targetAccountNo || tab.form.targetAccountNo === intent?.targetAccountNo;
-            const voucherMatched = !tab.form.targetVoucherNo
-                || (customer.mediaDetails || []).some(item => item.voucherNo === tab.form.targetVoucherNo || item.mediumNo === tab.form.targetVoucherNo);
-            if (!accountMatched || !voucherMatched) {
-                tab.ui.inlineMessage = '目标账号/凭证号与当前黄框客户不一致。';
-                tab.ui.customerLoaded = false;
-                return false;
-            }
-            tab.form.targetAccountNo = tab.form.targetAccountNo || intent?.targetAccountNo || '';
-            tab.form.targetVoucherNo = tab.form.targetVoucherNo || (customer.mediaDetails || []).find(item => item.voucherNo)?.voucherNo || '';
-            tab.form.customerName = customer.customerName || '';
-            tab.form.idNo = customer.idNo || '';
-            tab.form.requestDisplay = intent?.requestDisplay || '';
+            const matched = createMockMediumByInput(value);
+            Object.assign(tab.form, {
+                accountNo: matched.customerAccountNo,
+                cardNo: matched.mediumNo,
+                customerName: matched.customerName,
+                idType: matched.idType,
+                idNo: matched.idNo,
+                accountType: '个人活期',
+                currentBalance: matched.balanceAmount,
+                voucherNo: matched.voucherNo
+            });
             tab.ui.customerLoaded = true;
-            tab.ui.inlineMessage = '0055 已按当前黄框客户完成提交前带出。';
             return true;
         }
 
@@ -1584,18 +1621,17 @@
         }
 
         function start3900IdRead(tab) {
-            const customer = state.customerState.customer;
+
             tab.ui.readingIdCard = true;
             tab.ui.readingIdCardMessage = '请刷身份证……';
             renderTabs();
             window.setTimeout(() => {
-                const idNo = customer?.idNo || '371321198311107948';
-                const customerName = customer?.customerName || '王雯';
+                const idNo = tab.form.idNo || '371321198311107948';
+                const mock = createMockCustomerById(idNo);
                 tab.form.idNo = idNo;
-                tab.form.customerName = customerName;
+                tab.form.customerName = mock.customerName;
                 tab.ui.customerLoaded = true;
                 tab.ui.readingIdCard = false;
-                tab.ui.inlineMessage = '身份证读取完成，请先在证件号码框确认，再回车到客户名称。';
                 renderTabs();
                 requestAnimationFrame(() => {
                     const idField = tradeStage.querySelector('[data-field="idNo"]');
@@ -1607,7 +1643,7 @@
         }
 
         function start1651To3900Link(tab1651) {
-            const customerInfo = resolveCurrentCustomerInfo();
+            const customerInfo = createMockCustomerById(tab1651.form.certNo || '371321198311107948');
             tab1651.ui.readingIdCard = true;
             tab1651.ui.readingIdCardMessage = '请刷身份证……';
             renderTabs();
@@ -1627,7 +1663,7 @@
                     tab3900.form.customerName = customerInfo.customerName;
                     tab3900.form.businessType = tab3900.form.businessType || '01-银行账户业务';
                     tab3900.ui.customerLoaded = true;
-                    tab3900.ui.inlineMessage = '1651 已联动进入3900并完成核查，正在回填客户信息。';
+
                 }
 
                 window.setTimeout(() => {
@@ -1636,7 +1672,6 @@
                         tab1651.form.certNo = tab3900.form.idNo || tab1651.form.certNo;
                         tab1651.form.customerName = tab3900.form.customerName || tab1651.form.customerName;
                     }
-                    tab1651.ui.inlineMessage = '已完成 1651 → 3900 联动并回填客户信息，可继续提交前录入。';
                     state.activeTabId = tab1651.id;
                     tab1651.ui.nextFocusField = 'customerName';
                     renderTabs();
@@ -1748,6 +1783,33 @@
                 idType: customer.idType || '1001-第二代居民身份证',
                 mobile: customer.mobile || '15600001111',
                 customerNo: customer.customerKey || `998${Date.now().toString().slice(-10)}`
+            };
+        }
+
+        function createMockCustomerById(idNo) {
+            const suffix = String(idNo || '').slice(-4) || '7948';
+            return {
+                customerName: '王雯',
+                idNo: idNo || '371321198311107948',
+                idType: '1001-第二代居民身份证',
+                customerNo: `9980000${suffix}`,
+                mobile: `1560000${suffix}`
+            };
+        }
+
+        function createMockMediumByInput(rawValue) {
+            const suffix = String(rawValue || '').replace(/\D/g, '').slice(-6) || '167776';
+            const customer = createMockCustomerById(`371321198311${suffix.padStart(6, '0')}`);
+            return {
+                customerName: customer.customerName,
+                idType: customer.idType,
+                idNo: customer.idNo,
+                customerAccountNo: `6223203338${suffix.padStart(8, '0')}`,
+                mediumNo: String(rawValue || '').trim() || `6223203338${suffix.padStart(8, '0')}`,
+                voucherNo: `V${suffix.padStart(8, '0')}`,
+                mediumSubType: '01',
+                mediaStatus: '正常',
+                balanceAmount: '50000.00'
             };
         }
         function bindCardDrag() {
