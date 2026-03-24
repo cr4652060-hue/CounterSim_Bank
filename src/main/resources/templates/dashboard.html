@@ -159,6 +159,8 @@
                     mediumDialogValue: '',
                     mediumDialogError: '',
                     mediumDialogMode: '1062',
+                    mediumDialogStep: 'choose-method',
+                    mediumDialogInputMethod: '',
                     readingIdCard: false,
                     readingIdCardMessage: '请刷身份证……',
                     passwordDialogOpen: false,
@@ -682,8 +684,8 @@
                                 ${field('交易类别', select('withdrawMode', f.withdrawMode, ['', '1-现金'], { gray: true, readonly: true }))}
                                 ${field('币种', select('currency', f.currency, ['156-CNY人民币'], { yellow: true, required: true, navType: 'select' }))}
                                 ${field('钞汇标志', select('cashFlag', f.cashFlag, ['0-钞', '1-汇'], { yellow: true, required: true, navType: 'select' }))}
-                                ${field('金额',select('amount',f.amount,{yellow:true,autofocus: true, required: true, navType: 'select' }))}
-                                ${field('账号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, required: true, navType: 'lookup-1061', placeholder: '请输入账号后回车带出客户' }))}
+                                ${field('金额', input('amount', f.amount, { yellow: true, required: true, navType: 'input' }))}
+                                ${field('账（卡）号', input('accountNo', f.accountNo, { yellow: true, autofocus: true, required: true, navType: 'medium-trigger', placeholder: '点击后刷卡/读卡/手工输入' }))}
                                 ${field('客户账号', input('accountNo', f.accountNo, { gray: true, readonly: true }))}
                                 ${field('卡号/折号', input('cardNo', f.cardNo, { placeholder: '支持鼠标点选修改' }))}
                                 ${field('客户名称', input('customerName', f.customerName, { readonly: true, gray: true }))}
@@ -1145,21 +1147,46 @@
             if (!tab.ui.mediumDialogOpen) {
                 return '';
             }
+            const is1062 = tab.ui.mediumDialogMode === '1062';
+            const is1061 = tab.ui.mediumDialogMode === '1061';
+            const methods = is1061
+                ? [
+                    { value: 'magstripe', label: '0-刷磁条卡/折' },
+                    { value: 'ic', label: '1-读IC卡' },
+                    { value: 'manual', label: '2-手工输入' }
+                ]
+                : [
+                    { value: 'magstripe', label: '0-刷磁条卡/折' },
+                    { value: 'ic', label: '1-读IC卡' }
+                ];
+            const methodLabelMap = {
+                magstripe: '请刷磁条',
+                ic: '请插入介质并回车确认，模拟刷卡后带出客户。',
+                manual: '请输入介质号码并回车，模拟手工输入后带出客户。'
+            };
+            const step = tab.ui.mediumDialogStep || 'choose-method';
             return `
                 <div class="trade-overlay">
-                    <div class="bank-dialog small-dialog">
-                        <div class="bank-dialog-title">${tab.ui.mediumDialogMode === '1062' ? '介质选择 / 刷卡模拟' : '凭证带出模拟'}</div>
+                    <div class="bank-dialog small-dialog medium-dialog-shell ${step === 'choose-method' ? 'method-dialog-shell' : ''}">
+                        <div class="bank-dialog-title">${step === 'choose-method' ? '请选择输入方式！' : (is1062 ? '介质选择 / 刷卡模拟' : '账户介质输入模拟')}</div>
                         <div class="dialog-tip-block">
-                            <div>${tab.ui.mediumDialogMode === '1062' ? '请录入介质号码并回车，模拟刷卡后带出客户。' : '请录入凭证印刷号或账号并回车，带出当前黄框客户。'}</div>
+                            <div>${step === 'choose-method' ? '请选择输入方式' : (methodLabelMap[tab.ui.mediumDialogInputMethod] || '请输入介质号码并回车确认')}</div>
                             <div class="dialog-error-text">${escapeHtml(tab.ui.mediumDialogError || '')}</div>
                         </div>
-                        <div class="trade-form-grid bank-form-grid dense-grid">
-                            ${field(tab.ui.mediumDialogMode === '1062' ? '介质号码' : '凭证印刷号', input('dialog.medium', tab.ui.mediumDialogValue, { yellow: true, autofocus: true, placeholder: '输入后按回车确认' }))}
-                        </div>
-                        <div class="trade-action-row bank-action-row dialog-actions">
-                            <button type="button" class="counter-form-btn" data-tab-action="confirm-medium-dialog" data-enter-target="true">确认</button>
-                            <button type="button" class="counter-form-btn" data-tab-action="close-medium-dialog" data-enter-target="true">退出</button>
-                        </div>
+                        ${step === 'choose-method' ? `
+                            <div class="medium-method-row">
+                                ${methods.map(item => `<button type="button" class="medium-method-btn ${tab.ui.mediumDialogInputMethod === item.value ? 'active' : ''}" data-tab-action="choose-medium-method" data-method="${item.value}">${item.label}</button>`).join('')}
+                            </div>
+                        ` : `
+                            <div class="trade-form-grid bank-form-grid dense-grid">
+                                ${field('介质号码', input('dialog.medium', tab.ui.mediumDialogValue, { yellow: true, autofocus: true, placeholder: '输入后按回车确认' }))}
+                            </div>
+                            <div class="trade-action-row bank-action-row dialog-actions">
+                                <button type="button" class="counter-form-btn" data-tab-action="confirm-medium-dialog" data-enter-target="true">确认</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="back-medium-method" data-enter-target="true">返回</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="close-medium-dialog" data-enter-target="true">退出</button>
+                            </div>
+                        `}
                     </div>
                 </div>
             `;
@@ -1208,7 +1235,7 @@
             });
 
             tradeStage.querySelectorAll('[data-tab-action]').forEach(button => {
-                button.addEventListener('click', () => handleTabAction(activeTab, button.dataset.tabAction));
+                button.addEventListener('click', () => handleTabAction(activeTab, button.dataset.tabAction, button));
             });
         }
 
@@ -1240,7 +1267,7 @@
                     node.addEventListener('mousedown', event => {
                         if (!tab.ui.customerLoaded) {
                             event.preventDefault();
-                            openMediumDialog(tab, '1062');
+                            openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                         }
                     });
                 }
@@ -1299,7 +1326,7 @@
             }
             if (node.dataset.navType === 'medium-trigger' && !tab.ui.customerLoaded) {
                 event.preventDefault();
-                openMediumDialog(tab, '1062');
+                openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 return;
             }
             if (node.dataset.navType === 'lookup-1657') {
@@ -1500,7 +1527,9 @@
         function openMediumDialog(tab, mode) {
             tab.ui.mediumDialogOpen = true;
             tab.ui.mediumDialogMode = mode;
-            tab.ui.mediumDialogValue = mode === '1062' ? tab.form.mediumNo || '' : tab.form.printNo || '';
+            tab.ui.mediumDialogStep = 'choose-method';
+            tab.ui.mediumDialogInputMethod = '';
+            tab.ui.mediumDialogValue = mode === '1062' ? (tab.form.mediumNo || '') : (tab.form.accountNo || '');
             tab.ui.mediumDialogError = '';
             renderTabs();
         }
@@ -1508,28 +1537,83 @@
         function closeMediumDialog(tab) {
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
+            tab.ui.mediumDialogStep = 'choose-method';
+            tab.ui.mediumDialogInputMethod = '';
             renderTabs();
         }
 
-        function confirmMediumDialog(tab) {
-
-            const mediumInput = (tab.ui.mediumDialogValue || '').trim();
-
-            if (!mediumInput) {
-                tab.ui.mediumDialogError = tab.ui.mediumDialogMode === '1062' ? '请输入介质号码。' : '请输入凭证印刷号。';
-                renderTabs();
+        function chooseMediumMethod(tab, method) {
+            if (!method) {
                 return;
             }
-            if (tab.ui.mediumDialogMode === '1062') {
-                const matched = createMockMediumByInput(mediumInput);
-                const customer = createMockCustomerById(matched.idNo);
-                hydrateFormFromResolvedMedium(tab, customer, matched);
-                tab.ui.nextFocusField = 'currency';
+            tab.ui.mediumDialogInputMethod = method;
+            if (method === 'magstripe' || method === 'ic') {
+                const seed = resolveDialogMediumSeed(tab);
+                tab.ui.mediumDialogValue = seed;
+            }
+            tab.ui.mediumDialogStep = 'input-medium';
+            tab.ui.mediumDialogError = '';
+            renderTabs();
+        }
 
+        function resolveDialogMediumSeed(tab) {
+            const currentCustomerMedia = state.customerState.customer?.mediaDetails || [];
+            const preferred = currentCustomerMedia.find(item => String(item.mediumNo || '').trim())?.mediumNo;
+            if (preferred) {
+                return preferred;
+            }
+            if (tab.code === '1061') {
+                return tab.form.accountNo || '6223203338167776';
+            }
+            return tab.form.mediumNo || '6223203338167776';
+        }
+
+        function confirmMediumDialog(tab) {
+            const liveInput = tradeStage.querySelector('[data-field="dialog.medium"]');
+            if (liveInput) {
+                tab.ui.mediumDialogValue = liveInput.value;
+            }
+            const mediumInput = String(tab.ui.mediumDialogValue || '').trim();
+            if (!mediumInput) {
+                tab.ui.mediumDialogError = '请输入介质号码。';
+                renderTabs();
+                requestAnimationFrame(() => focusField('dialog.medium'));
+                return;
+            }
+            const matched = createMockMediumByInput(mediumInput);
+            const customer = createMockCustomerById(matched.idNo);
+            hydrateFormFromResolvedMedium(tab, customer, matched);
+            if (tab.code === '1061') {
+                hydrate1061FormFromResolvedMedium(tab, customer, matched);
+                tab.ui.nextFocusField = 'depositAmount';
+            } else {
+                tab.ui.nextFocusField = 'currency';
             }
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
+            tab.ui.mediumDialogStep = 'choose-method';
             renderTabs();
+        }
+
+        function hydrate1061FormFromResolvedMedium(tab, customer, medium) {
+            Object.assign(tab.form, {
+                accountNo: medium.mediumNo || medium.customerAccountNo || '',
+                cardNo: medium.mediumNo || '',
+                customerName: customer.customerName || '',
+                idType: customer.idType || '1001-第二代居民身份证',
+                idNo: customer.idNo || '',
+                accountType: medium.accountCategory || '1-类',
+                currentBalance: medium.balanceAmount ? Number(medium.balanceAmount).toFixed(2) : '',
+                voucherNo: medium.voucherNo || '',
+                withdrawMode: '1-现金',
+                currency: '156-CNY人民币',
+                cashFlag: '0-钞',
+                amount: tab.form.amount || '65.00',
+                depositAmount: tab.form.depositAmount || '65.00',
+                accountNature: medium.accountCategory || '1-类',
+                proxyFlag: 'N-否'
+            });
+            tab.ui.customerLoaded = true;
         }
 
         function hydrateFormFromResolvedMedium(tab, customer, medium) {
@@ -1758,7 +1842,7 @@
             }
         }
 
-        function handleTabAction(tab, action) {
+        function handleTabAction(tab, action, triggerNode) {
             switch (action) {
                 case 'pre-submit':
                     tab.ui.inlineMessage = '本轮仅做到提交前，提交后流程（影像/签字/电子凭证/结束服务）不执行。';
@@ -1769,6 +1853,14 @@
                     return;
                 case 'confirm-medium-dialog':
                     confirmMediumDialog(tab);
+                    return;
+                case 'choose-medium-method':
+                    chooseMediumMethod(tab, triggerNode?.dataset?.method || '');
+                    return;
+                case 'back-medium-method':
+                    tab.ui.mediumDialogStep = 'choose-method';
+                    tab.ui.mediumDialogError = '';
+                    renderTabs();
                     return;
                 default:
                     break;
