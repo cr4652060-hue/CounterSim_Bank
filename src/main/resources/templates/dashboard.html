@@ -1169,7 +1169,7 @@
                             <div class="bank-form-rows compact-rows">
 
                                   <div class="bank-form-row bank-form-row-span-left">
-                                    ${bankCell('账号', input('accountNo', f.accountNo || resolvePassbookAccountNo(tab), { yellow: true, navType: 'lookup-1657' }))}
+                                    ${bankCell('账号', input('accountNo', f.accountNo || resolvePassbookAccountNo(tab), { yellow: true, navType: 'medium-trigger', readonly: true, cursorReadonly: true, placeholder: '回车触发介质输入弹窗' }))}
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('存折册号' ,input('volumeNo', f.volumeNo, {gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
@@ -1483,7 +1483,8 @@
                 ]
                 : [
                     { value: 'magstripe', label: '0-刷磁条卡/折' },
-                    { value: 'ic', label: '1-读IC卡' }
+                    { value: 'ic', label: '1-读IC卡' },
+                    { value: 'manual', label: '2-手工输入' }
                 ];
             const methodLabelMap = {
                 magstripe: '请刷磁条',
@@ -1501,7 +1502,7 @@
                         </div>
                         ${step === 'choose-method' ? `
                             <div class="medium-method-row">
-                                ${methods.map(item => `<button type="button" class="medium-method-btn ${tab.ui.mediumDialogInputMethod === item.value ? 'active' : ''}" data-tab-action="choose-medium-method" data-method="${item.value}">${item.label}</button>`).join('')}
+                            ${methods.map((item, index) => `<button type="button" class="medium-method-btn ${tab.ui.mediumDialogInputMethod === item.value ? 'active' : ''}" data-tab-action="choose-medium-method" data-method="${item.value}" data-enter-target="true" data-button-group="medium-method" data-button-index="${index}">${item.label}</button>`).join('')}
                             </div>
                         ` : `
                             <div class="trade-form-grid bank-form-grid dense-grid">
@@ -1657,7 +1658,7 @@
                 }
                 if (node.dataset.navType === '1651-id-read') {
                     node.addEventListener('focus', () => {
-                        if (tab.code === '1651' && tab.form.certType && !tab.form.certNo && !tab.ui.readingIdCard) {
+                        if (tab.code === '1651' && tab.form.certType && !tab.ui.readingIdCard) {
                             start1651To3900Link(tab);
                         }
                     });
@@ -1811,7 +1812,7 @@
                 }
                 return;
             }
-            if (node.dataset.navType === '1651-id-read' && !tab.form.certNo) {
+            if (node.dataset.navType === '1651-id-read') {
                 event.preventDefault();
                 if (!tab.ui.readingIdCard) {
                     start1651To3900Link(tab);
@@ -1901,7 +1902,7 @@
                 if (!tab.form.certType) {
                     return true;
                 }
-                if (!tab.form.certNo && !tab.ui.readingIdCard) {
+                if (!tab.form.certNo && !tab.ui.readingIdCard){
                     start1651To3900Link(tab);
                 }
                 return true;
@@ -1972,20 +1973,25 @@
         }
 
         function isEnterNavigable(node) {
+            const specialReadonly = ['medium-trigger', '1651-id-read', 'id-read'].includes(node?.dataset?.navType);
             return node
                 && node.offsetParent !== null
                 && !node.disabled
-                && (!node.readOnly || node.dataset.enterInclude === 'true' || node.tagName === 'BUTTON');
+                && (!node.readOnly || node.dataset.enterInclude === 'true' || node.tagName === 'BUTTON' || specialReadonly);
         }
 
         function openMediumDialog(tab, mode) {
             tab.ui.mediumDialogOpen = true;
             tab.ui.mediumDialogMode = mode;
             tab.ui.mediumDialogStep = 'choose-method';
-            tab.ui.mediumDialogInputMethod = '';
+            tab.ui.mediumDialogInputMethod = 'manual';
             tab.ui.mediumDialogValue = mode === '1062' ? (tab.form.mediumNo || '') : (tab.form.accountNo || '');
             tab.ui.mediumDialogError = '';
             renderTabs();
+            requestAnimationFrame(() => {
+                const firstMethodButton = tradeStage.querySelector('[data-button-group="medium-method"][data-button-index="0"]');
+                firstMethodButton?.focus();
+            });
         }
 
         function closeMediumDialog(tab) {
@@ -2038,6 +2044,17 @@
             }
             const matched = createMockMediumByInput(mediumInput);
             const customer = createMockCustomerById(matched.idNo);
+            if (tab.code === '1657') {
+                tab.form.accountNo = mediumInput;
+                tab.form.printNo = tab.form.printNo || matched.voucherNo || '';
+                attempt1657Lookup(tab);
+                tab.ui.nextFocusField = 'withdrawType';
+                tab.ui.mediumDialogOpen = false;
+                tab.ui.mediumDialogError = '';
+                tab.ui.mediumDialogStep = 'choose-method';
+                renderTabs();
+                return;
+            }
             hydrateFormFromResolvedMedium(tab, customer, matched);
             if (tab.code === '1061') {
                 hydrate1061FormFromResolvedMedium(tab, customer, matched);

@@ -119,11 +119,11 @@ public class CounterCustomerScenarioServiceImpl implements CounterCustomerScenar
                 .requestType("取存单")
                 .requestDisplay("客户诉求：取存单")
                 .targetMediumType(certificate != null ? certificate.getMediumType() : "存单")
-                .targetMediumNo(certificate != null ? (certificate.getVoucherNo() == null ? certificate.getMediumNo() : certificate.getVoucherNo()) : "待指定")
+                .targetMediumNo(certificate != null ? certificate.getMediumNo() : "待指定")
                 .targetAccountNo(certificate != null ? certificate.getCustomerAccountNo() : null)
                 .targetDescription(certificate == null
                         ? "目标存单：待指定"
-                        : "目标存单：" + (certificate.getVoucherNo() == null ? certificate.getMediumNo() : certificate.getVoucherNo()))
+                        : "目标存单：" + certificate.getMediumNo())
                 .carriesCash(false)
                 .cashAmount(null)
                 .recommendedTradeCode("1657")
