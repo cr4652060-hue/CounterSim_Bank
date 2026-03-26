@@ -295,7 +295,7 @@
                     };
                 case '1651':
                     return {
-                        certType: '',
+                        certType: '1001-第二代居民身份证',
                         certNo: '',
                         customerName: '',
                         mobile: '',
@@ -1162,10 +1162,9 @@
                <div class="trade-page trade-page-bankform trade-page-three-col">
                     <div class="trade-main-panel bank-form-main trade-center-column">
                         ${renderInlineMessage(tab)}
-                        ${renderEntryAnchor()}
                         <div class="form-line compact-line deposit-flag-line bank-loan-headline">
                             <label>是否存折</label>
-                            ${input('passbookFlag', f.passbookFlag || '0-存单', { yellow: true, navType: 'readonly-focus', readonly: true, cursorReadonly: true, enterInclude: true })}
+                             ${input('passbookFlag', f.passbookFlag || '0-存单', { yellow: true, navType: 'readonly-focus', readonly: true, cursorReadonly: true, enterInclude: true, autofocus: true })}
                         </div>
                         <section class="trade-section-block form-compact-shell">
                             <div class="trade-section-title">账户信息</div>
@@ -1690,7 +1689,7 @@
             }
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
                 event.preventDefault();
-                focusField('accountNo');
+                openMediumDialog(tab, '1062');
                 return;
             }
             if (node.dataset.field === 'idType' || node.dataset.field === 'verify.idType') {
@@ -1919,6 +1918,13 @@
             cursor[segments.at(-1)] = value;
         }
 
+        function fallbackIfEmpty(value, fallback = '') {
+            if (value === null || value === undefined) {
+                return fallback;
+            }
+            return String(value).trim() === '' ? fallback : value;
+        }
+
         function bankCell(labelText, control, options = {}) {
             const classNames = ['bank-row-cell'];
             if (options.full) {
@@ -1971,7 +1977,9 @@
             tab.ui.mediumDialogMode = mode;
             tab.ui.mediumDialogStep = 'choose-method';
             tab.ui.mediumDialogInputMethod = 'manual';
-            tab.ui.mediumDialogValue = mode === '1062' ? (tab.form.mediumNo || '') : (tab.form.accountNo || '');
+            tab.ui.mediumDialogValue = mode === '1062'
+                ? (tab.code === '1657' ? (tab.form.accountNo || '') : (tab.form.mediumNo || ''))
+                : (tab.form.accountNo || '');
             tab.ui.mediumDialogError = '';
             renderTabs();
             requestAnimationFrame(() => {
@@ -2064,8 +2072,8 @@
                 withdrawMode: '1-现金',
                 currency: '156-CNY人民币',
                 cashFlag: '0-钞',
-                amount: tab.form.amount || '65.00',
-                depositAmount: tab.form.depositAmount || '65.00',
+                amount: fallbackIfEmpty(tab.form.amount, '00.00'),
+                depositAmount: fallbackIfEmpty(tab.form.depositAmount, fallbackIfEmpty(tab.form.amount, '00.00')),
                 accountNature: '',
                 accountBranchNo: '0101',
                 accountSeq: '001',
@@ -2638,6 +2646,9 @@
             const mediaList = customer.mediaDetails || [];
             const firstMedium = mediaList[0] || {};
             const transactionChineseName = tab.name || '交易码的汉字名称';
+            const resolvedAmount = tab.code === '1062'
+                ? fallbackIfEmpty(tab.form.withdrawAmount, fallbackIfEmpty(tab.form.amount, '0.00'))
+                : fallbackIfEmpty(tab.form.amount, fallbackIfEmpty(tab.form.withdrawAmount, '0.00'));
             return {
                 title: `${transactionChineseName}凭证`,
                 transactionChineseName,
@@ -2654,7 +2665,7 @@
                 voucherCategory: tab.form.voucherType || tab.form.newVoucherType || '',
                 voucherNo: tab.form.voucherNo || tab.form.depositPrintNo || tab.form.printNo || '',
                 cashFlag: (tab.form.cashFlag || '').replace('-', '/'),
-                amount: tab.form.amount || tab.form.withdrawAmount || '0.00',
+                amount: resolvedAmount,
                 feeAmount: tab.form.feeAmount || '0.00',
                 notes: tab.form.notes || '交易中的备注信息',
                 customerName: tab.form.customerName || customer.customerName || '客户名称',
