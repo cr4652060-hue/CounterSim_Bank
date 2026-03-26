@@ -955,7 +955,7 @@
                                     ${bankCell('证件号码', input('idNo', f.idNo, { gray: true, readonly: true }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
-                                     ${bankCell('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取'], { navType: 'select' }))}
+                                 ${bankCell('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取'], { navType: 'select', allowEmpty: true }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                                <div class="bank-form-row bank-form-row-single-left">
@@ -1658,22 +1658,6 @@
                         }
                     });
                 }
-                if (node.dataset.navType === '1651-id-read') {
-                    node.addEventListener('focus', () => {
-                        if (tab.code === '1651' && tab.form.certType && !tab.ui.readingIdCard) {
-                            start1651To3900Link(tab);
-                        }
-                    });
-                }
-                if (node.dataset.navType === 'id-read') {
-                    node.addEventListener('focus', () => {
-                        const typeField = node.dataset.field && node.dataset.field.startsWith('verify.') ? 'verify.idType' : 'idType';
-                        const targetForm = node.dataset.field && node.dataset.field.startsWith('verify.') ? (tab.form.verify || {}) : tab.form;
-                        if (getFormValue(tab.form, typeField) && !tab.ui.readingIdCard) {
-                            start3900IdRead(tab, node.dataset.field || 'idNo');
-                        }
-                    });
-                }
                 node.addEventListener('keydown', event => handleUnifiedKeydown(tab, event, node));
             });
         }
@@ -1702,9 +1686,6 @@
             if (node.dataset.field === 'certType' && tab.code === '1651') {
                 event.preventDefault();
                 focusField('certNo');
-                if (!tab.ui.readingIdCard) {
-                    start1651To3900Link(tab);
-                }
                 return;
             }
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
@@ -1855,10 +1836,6 @@
                 if (next.select) {
                     next.select();
                 }
-                const currentTab = state.tabs.find(item => item.id === state.activeTabId);
-                if (currentTab) {
-                    triggerSpecialNavigation(currentTab, next);
-                }
             }
         }
 
@@ -1894,10 +1871,6 @@
                 node.focus();
                 if (node.select) {
                     node.select();
-                }
-                const currentTab = state.tabs.find(item => item.id === state.activeTabId);
-                if (currentTab) {
-                    triggerSpecialNavigation(currentTab, node);
                 }
             }
         }
