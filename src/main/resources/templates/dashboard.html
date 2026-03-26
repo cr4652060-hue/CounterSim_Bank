@@ -1624,11 +1624,6 @@
                         openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                     };
                     node.addEventListener('click', openDialog);
-                    node.addEventListener('focus', () => {
-                        if (document.activeElement === node && !tab.ui.mediumDialogOpen) {
-                            openDialog();
-                        }
-                    });
                 }
                 if (node.dataset.field === 'dialog.medium') {
                     node.addEventListener('keydown', event => {
@@ -1707,6 +1702,14 @@
             if (node.dataset.field === 'certType' && tab.code === '1651') {
                 event.preventDefault();
                 focusField('certNo');
+                if (!tab.ui.readingIdCard) {
+                    start1651To3900Link(tab);
+                }
+                return;
+            }
+            if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
+                event.preventDefault();
+                focusField('accountNo');
                 return;
             }
             if (node.dataset.field === 'idType' || node.dataset.field === 'verify.idType') {
@@ -2064,9 +2067,9 @@
             hydrateFormFromResolvedMedium(tab, customer, matched);
             if (tab.code === '1061') {
                 hydrate1061FormFromResolvedMedium(tab, customer, matched);
-                tab.ui.nextFocusField = 'amount';
+                tab.ui.nextFocusField = 'feeMode';
             } else {
-                tab.ui.nextFocusField = 'currency';
+                tab.ui.nextFocusField = 'password';
             }
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
