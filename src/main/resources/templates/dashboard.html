@@ -185,6 +185,7 @@
                     mediumDialogInputMethod: '',
                     readingIdCard: false,
                     readingIdCardMessage: '请刷身份证……',
+                    readingIdCardTimer: null,
                     passwordDialogOpen: false,
                     passwordField: '',
                     passwordReady: {},
@@ -475,6 +476,9 @@
                 state.activeTabId = existing.id;
             } else {
                 const tab = createTabState(definition, code);
+                if (code === '1657') {
+                    tab.ui.nextFocusField = 'passbookFlag';
+                }
                 state.tabs.push(tab);
                 state.activeTabId = tab.id;
             }
@@ -1983,6 +1987,10 @@
             tab.ui.mediumDialogError = '';
             renderTabs();
             requestAnimationFrame(() => {
+                if (directInputFor1657) {
+                    focusField('dialog.medium');
+                    return;
+                }
                 const firstMethodButton = tradeStage.querySelector('[data-button-group="medium-method"][data-button-index="0"]');
                 firstMethodButton?.focus();
             });
@@ -2059,7 +2067,10 @@
         }
 
         function hydrate1061FormFromResolvedMedium(tab, customer, medium) {
+            const preservedAmount = fallbackIfEmpty(tab.form.amount, '');
+            const preservedDepositAmount = fallbackIfEmpty(tab.form.depositAmount, '');
             Object.assign(tab.form, {
+
                 accountNo: medium.mediumNo || medium.customerAccountNo || '',
                 customerAccountNo: medium.customerAccountNo || '',
                 cardNo: medium.mediumNo || '',
@@ -2072,8 +2083,8 @@
                 withdrawMode: '1-现金',
                 currency: '156-CNY人民币',
                 cashFlag: '0-钞',
-                amount: fallbackIfEmpty(tab.form.amount, '00.00'),
-                depositAmount: fallbackIfEmpty(tab.form.depositAmount, fallbackIfEmpty(tab.form.amount, '00.00')),
+                amount: preservedAmount,
+                depositAmount: fallbackIfEmpty(preservedDepositAmount, preservedAmount),
                 accountNature: '',
                 accountBranchNo: '0101',
                 accountSeq: '001',
@@ -2186,10 +2197,14 @@
         function start3900IdRead(tab, fieldPath = 'idNo') {
             const isVerifyOverlay = fieldPath.startsWith('verify.');
             const target = isVerifyOverlay ? (tab.form.verify || (tab.form.verify = {})) : tab.form;
+            if (tab.ui.readingIdCardTimer) {
+                window.clearTimeout(tab.ui.readingIdCardTimer);
+                tab.ui.readingIdCardTimer = null;
+            }
             tab.ui.readingIdCard = true;
             tab.ui.readingIdCardMessage = '请刷身份证……';
             renderTabs();
-            window.setTimeout(() => {
+            tab.ui.readingIdCardTimer = window.setTimeout(() => {
                 const existingId = getFormValue(tab.form, fieldPath) || target.idNo || (target.customerName === '代理人' ? '37132119900101123X' : '371321198311107948');
                 const mock = target.customerName === '代理人' ? { customerName: '代理人', idNo: existingId, idType: target.idType || '1001-第二代居民身份证', mobile: '', customerNo: 'DL000001' } : createMockCustomerById(existingId);
                 target.idType = target.idType || mock.idType || '1001-第二代居民身份证';
@@ -2211,6 +2226,7 @@
                 }
                 tab.ui.customerLoaded = true;
                 tab.ui.readingIdCard = false;
+                tab.ui.readingIdCardTimer = null;
                 renderTabs();
                 requestAnimationFrame(() => {
                     const closeButton = tradeStage.querySelector('[data-button-group="verify-result-actions"][data-button-index="3"]');
@@ -2222,10 +2238,14 @@
 
         function start1651To3900Link(tab1651) {
             const customerInfo = createMockCustomerById(tab1651.form.certNo || '371321198311107948');
+            if (tab1651.ui.readingIdCardTimer) {
+                window.clearTimeout(tab1651.ui.readingIdCardTimer);
+                tab1651.ui.readingIdCardTimer = null;
+            }
             tab1651.ui.readingIdCard = true;
             tab1651.ui.readingIdCardMessage = '请刷身份证……';
             renderTabs();
-            window.setTimeout(() => {
+            tab1651.ui.readingIdCardTimer = window.setTimeout(() => {
                 tab1651.ui.readingIdCard = false;
                 tab1651.form.certType = tab1651.form.certType || customerInfo.idType;
                 tab1651.form.certNo = customerInfo.idNo;
@@ -2244,6 +2264,7 @@
                 tab1651.form.verify.validUntil = tab1651.form.verify.validUntil || '2032-02-18';
                 tab1651.form.verify.checkResult = tab1651.form.verify.checkResult || '00-身份证号码与姓名一致并存在照片';
                 tab1651.ui.verifyStage = 'result';
+                tab1651.ui.readingIdCardTimer = null;
                 renderTabs();
                 requestAnimationFrame(() => {
                     const closeButton = tradeStage.querySelector('[data-button-group="verify-result-actions"][data-button-index="3"]');
@@ -2646,9 +2667,15 @@
             const mediaList = customer.mediaDetails || [];
             const firstMedium = mediaList[0] || {};
             const transactionChineseName = tab.name || '交易码的汉字名称';
-            const resolvedAmount = tab.code === '1062'
-                ? fallbackIfEmpty(tab.form.withdrawAmount, fallbackIfEmpty(tab.form.amount, '0.00'))
-                : fallbackIfEmpty(tab.form.amount, fallbackIfEmpty(tab.form.withdrawAmount, '0.00'));
+            const resolvedAmount = (() => {
+                if (tab.code === '1062') {
+                    return fallbackIfEmpty(tab.form.withdrawAmount, fallbackIfEmpty(tab.form.amount, ''));
+                }
+                if (tab.code === '1061') {
+                    return fallbackIfEmpty(tab.form.amount, fallbackIfEmpty(tab.form.depositAmount, ''));
+                }
+                return fallbackIfEmpty(tab.form.amount, fallbackIfEmpty(tab.form.withdrawAmount, ''));
+            })() || '0.00';
             return {
                 title: `${transactionChineseName}凭证`,
                 transactionChineseName,
