@@ -1769,3 +1769,11 @@ textarea { resize: vertical; min-height: 98px; }
 .receipt-preview-actions {justify-content:center;gap: 18px;padding-top: 12px;}
 .field-readonly-cursor {cursor: pointer;}
 .deposit-flag-line input.field-yellow {width: 206px; height: 24px;}
+
+.trade-3900-result-shell {
+    padding: 24px 28px 34px;
+}
+
+.system-alert-dialog {
+    width: 420px;
+}

@@ -104,6 +104,17 @@
             activeTabId: null
         };
 
+        function getDisplayTellerCode(rawCode) {
+            const raw = String(rawCode ?? '').trim();
+            if (!raw) {
+                return '000001';
+            }
+            if (/^\d+$/.test(raw) && Number(raw) >= 1 && Number(raw) <= 20) {
+                return raw.padStart(6, '0');
+            }
+            return raw.padStart(6, '0');
+        }
+
         const searchBox = document.getElementById('trade-search-box');
         const searchInput = document.getElementById('trade-search-input');
         const searchResults = document.getElementById('trade-search-results');
@@ -125,6 +136,17 @@
         renderTabs();
         renderCustomerCard();
         applyCardCollapsedState();
+        applyDisplayTellerCode();
+
+        function applyDisplayTellerCode() {
+            const displayCode = getDisplayTellerCode(state.teller?.tellerCode);
+            document.querySelectorAll('.teller-code').forEach(node => node.textContent = displayCode);
+            document.querySelectorAll('.desk-status-bar div').forEach(node => {
+                if (node.textContent.includes('柜员号:')) {
+                    node.textContent = `柜员号: ${displayCode}`;
+                }
+            });
+        }
 
         function normalizeCustomerState(raw) {
             if (!raw || !raw.serviceStatus) {
@@ -153,7 +175,7 @@
                 ui: {
                     proxyOpen: false,
                     proxyMode: 'manual',
-                    verifyStage: 'entry',
+                    verifyStage: definition.code === '3900' ? 'entry' : '',
                     customerLoaded: false,
                     mediumDialogOpen: false,
                     mediumDialogValue: '',
@@ -558,7 +580,7 @@
                         <section class="sidebar-panel queue-panel sidebar-panel-block">
                             <div class="queue-panel-main">
                                 <div class="queue-metrics">
-                                    <div><span>柜员号:</span><strong>${escapeHtml(state.teller?.tellerCode || '--')}</strong></div>
+                                    <div><span>柜员号:</span><strong>${escapeHtml(getDisplayTellerCode(state.teller?.tellerCode || '1'))}</strong></div>
                                     <div><span>库箱号:</span><strong>106</strong></div>
                                     <div><span>查询交易:</span><strong>0055</strong></div>
                                     <div><span>状态:</span><strong>查询中</strong></div>
@@ -584,7 +606,7 @@
                                 <div class="queue-metrics bank-queue-metrics">
                                     <div><span>排队号:</span><strong>--</strong></div>
                                     <div><span>等待人数:</span><strong>3</strong></div>
-                                    <div><span>窗口号:</span><strong>${escapeHtml(state.teller?.tellerCode || '--')}</strong></div>
+                                    <div><span>窗口号:</span><strong>${escapeHtml(getDisplayTellerCode(state.teller?.tellerCode || '1'))}</strong></div>
                                     <div><span>状态:</span><strong>受理中</strong></div>
                                 </div>
                                 <div class="queue-primary-actions bank-main-actions">
@@ -730,7 +752,7 @@
                     </section>
                     <div class="bank-assist-bottom-actions">
                         <button type="button" class="counter-form-btn" data-enter-target="true" data-button-group="right-actions" data-button-index="0">待提交</button>
-                        <button type="button" class="counter-form-btn" data-close-trade="${tab.code}" data-enter-target="true" data-button-group="right-actions" data-button-index="1">结束服务</button>
+                        <button type="button" class="counter-form-btn" data-tab-action="attempt-end-service" data-enter-target="true" data-button-group="right-actions" data-button-index="1">结束服务</button>
                     </div>
                 </aside>
             `;
@@ -860,6 +882,7 @@
                     ${renderVerifyModal(tab)}
                     ${renderReadIdDialog(tab)}
                     ${renderPasswordDialog(tab)}
+                    ${renderSystemAlertDialog(tab)}
                     ${renderCommonSubmitOverlay(tab)}
                 </div>
            `;
@@ -874,7 +897,7 @@
                         <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid form-3900-grid">
                             ${field('查询类型', select('queryType', f.queryType || '', ['', '1-现金/现钞', '2-凭证'], {
                 yellow: true,  required: true,  navType: 'select',   autofocus: true   }))}
-                            ${field('柜员号', input('tellerNo', f.tellerNo || (state.teller?.tellerCode || ''), {
+                            ${field('柜员号', input('tellerNo', f.tellerNo || getDisplayTellerCode(state.teller?.tellerCode || '1'), {
                 yellow: true,
                 navType: 'input'
             }))}
@@ -984,6 +1007,7 @@
                     ${renderVerifyModal(tab)}
                     ${renderReadIdDialog(tab)}
                     ${renderPasswordDialog(tab)}
+                    ${renderSystemAlertDialog(tab)}
                     ${renderCommonSubmitOverlay(tab)}
                 </div>
            `;
@@ -1119,8 +1143,10 @@
                     </div>
                     ${renderRightAssistPanel(tab)}
                     ${renderProxyModal(tab)}
+                    ${renderVerifyModal(tab)}
                     ${renderReadIdDialog(tab)}
                     ${renderPasswordDialog(tab)}
+                    ${renderSystemAlertDialog(tab)}
                     ${renderCommonSubmitOverlay(tab)}
                 </div>
             `;
@@ -1143,7 +1169,7 @@
                             <div class="bank-form-rows compact-rows">
 
                                   <div class="bank-form-row bank-form-row-span-left">
-                                    ${bankCell('账号', input('accountNo', f.accountNo, { yellow: true, navType: 'lookup-1657' }))}
+                                    ${bankCell('账号', input('accountNo', f.accountNo || resolvePassbookAccountNo(tab), { yellow: true, navType: 'lookup-1657' }))}
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('存折册号' ,input('volumeNo', f.volumeNo, {gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
@@ -1252,7 +1278,9 @@
                         ${renderBottomActions(tab.code)}
                     </div>
                     ${renderRightAssistPanel(tab)}
+                    ${renderVerifyModal(tab)}
                     ${renderPasswordDialog(tab)}
+                    ${renderSystemAlertDialog(tab)}
                     ${renderCommonSubmitOverlay(tab)}
                 </div>
             `;
@@ -1261,6 +1289,16 @@
 
         function render3900Standalone(tab) {
             const f = tab.form;
+            if (tab.ui.verifyStage === 'result') {
+                return `
+                    <div class="trade-page trade-page-single trade-3900-page">
+                        <div class="trade-main-panel bank-form-main trade-3900-shell trade-3900-result-shell">
+                            ${renderInlineMessage(tab)}
+                            ${renderVerifyDialog(tab, true)}
+                        </div>
+                    </div>
+                `;
+            }
             return `
                 <div class="trade-page trade-page-single trade-3900-page">
                     <div class="trade-main-panel bank-form-main trade-3900-shell">
@@ -1271,7 +1309,10 @@
                             ${field('客户名称', input('customerName', f.customerName, { gray: true, readonly: true, enterInclude: true, cursorReadonly: true, navType: 'readonly-focus' }))}
                             ${field('业务种类', select('businessType', f.businessType, ['', '01-银行账户业务', '02-信贷及征信业务', '03-支付结算业务', '04-反洗钱业务', '05-其他业务'], { yellow: true, required: true, navType: 'select-lock' }))}
                         </div>
-                        ${renderBottomActions(tab.code)}
+                        <div class="trade-action-row bank-action-row action-button-column">
+                            <button type="button" class="counter-form-btn" data-tab-action="3900-submit-verify" data-enter-target="true" data-button-group="submit-exit" data-button-index="0">提交</button>
+                            <button type="button" class="counter-form-btn" data-tab-action="3900-close-verify" data-enter-target="true" data-button-group="submit-exit" data-button-index="1">退出</button>
+                        </div>
                     </div>
                     ${renderReadIdDialog(tab)}
                 </div>
@@ -1346,13 +1387,17 @@
         }
 
         function renderVerifyModal(tab) {
-            if (tab.code !== '3900' && tab.ui.verifyStage !== 'entry' && tab.ui.verifyStage !== 'result') {
+            if (tab.code === '3900') {
                 return '';
             }
-            if (tab.code === '3900' || tab.ui.verifyStage === 'entry' || tab.ui.verifyStage === 'result') {
+            if (tab.ui.verifyStage !== 'entry' && tab.ui.verifyStage !== 'result') {
                 return '';
             }
-            return '';
+            return `
+                <div class="trade-overlay">
+                    ${renderVerifyDialog(tab, false)}
+                </div>
+            `;
         }
 
         function renderVerifyDialog(tab, standalone = false) {
@@ -1387,10 +1432,11 @@
                         </div>
                         <div class="verify-result-footer">
                             <label class="verify-result-select"><span>核查结果</span>${select(`${fieldPrefix}checkResult`, verify.checkResult, ['00-身份证号码与姓名一致并存在照片'])}</label>
-                            <div class="trade-action-row bank-action-row dialog-actions">
-                                <button type="button" class="counter-form-btn">维护客户头像</button>
-                                <button type="button" class="counter-form-btn">打印</button>
-                                <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify">关闭</button>
+                            <div class="trade-action-row bank-action-row dialog-actions verify-result-actions">
+                                <button type="button" class="counter-form-btn" data-tab-action="verify-modify" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="0">修改</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="verify-maintain-avatar" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="1">维护客户头像</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="verify-print" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="2">打印</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="3">关闭</button>
                             </div>
                         </div>
                     </div>
@@ -1405,7 +1451,7 @@
                             ${field('证件类型', select(`${fieldPrefix}idType`, verify.idType, ['', '1001-第二代居民身份证', '1002-临时身份证'], { yellow: true, autofocus: true }))}
                             ${field('证件号码', input(`${fieldPrefix}idNo`, verify.idNo, { yellow: true, readCardTrigger: standalone ? '3900' : '', placeholder: '回车进入本框后模拟刷身份证' }))}
                             ${field('客户名称', input(`${fieldPrefix}customerName`, verify.customerName, { gray: true, readonly: true, enterInclude: true, cursorReadonly: true }))}
-                            ${field('业务种类', select(`${fieldPrefix}businessType`, verify.businessType, ['', '01-银行卡业务', '02-存款业务', '03-支取业务'], { yellow: true }))}
+                            ${field('业务种类', select(`${fieldPrefix}businessType`, verify.businessType, ['', '01-银行账户业务', '02-存款业务', '03-支取业务'], { yellow: true }))}
                         </div>
                     </div>
                     <div class="trade-action-row bank-action-row dialog-actions">
@@ -1531,9 +1577,13 @@
                     if (path === 'businessType') {
                         tab.ui.businessTypeArmed = Boolean(event.target.value);
                     }
-                    if (path === 'proxyFlag' && event.target.value === 'Y-是') {
-                        tab.ui.proxyOpen = true;
-                        startProxy3900Link(tab);
+                    if (path === 'proxyFlag') {
+                        if (event.target.value === 'Y-是') {
+                            tab.ui.proxyOpen = false;
+                            startProxy3900Link(tab);
+                        } else if (tab.code !== '3900') {
+                            tab.ui.verifyStage = '';
+                        }
                     }
                     if (tab.code === '1657') {
                         if (path === 'withdrawAmount') {
@@ -1560,13 +1610,15 @@
             nodes.forEach(node => {
                 if (node.dataset.navType === 'medium-trigger') {
                     const openDialog = event => {
-                        event.preventDefault();
+                        if (event) {
+                            event.preventDefault();
+                        }
                         openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                     };
-                    node.addEventListener('mousedown', openDialog);
-                    node.addEventListener('focus', event => {
-                        if (document.activeElement === node) {
-                            openDialog(event);
+                    node.addEventListener('click', openDialog);
+                    node.addEventListener('focus', () => {
+                        if (document.activeElement === node && !tab.ui.mediumDialogOpen) {
+                            openDialog();
                         }
                     });
                 }
@@ -1603,6 +1655,22 @@
                         }
                     });
                 }
+                if (node.dataset.navType === '1651-id-read') {
+                    node.addEventListener('focus', () => {
+                        if (tab.code === '1651' && tab.form.certType && !tab.form.certNo && !tab.ui.readingIdCard) {
+                            start1651To3900Link(tab);
+                        }
+                    });
+                }
+                if (node.dataset.navType === 'id-read') {
+                    node.addEventListener('focus', () => {
+                        const typeField = node.dataset.field && node.dataset.field.startsWith('verify.') ? 'verify.idType' : 'idType';
+                        const targetForm = node.dataset.field && node.dataset.field.startsWith('verify.') ? (tab.form.verify || {}) : tab.form;
+                        if (getFormValue(tab.form, typeField) && !targetForm.idNo && !tab.ui.readingIdCard) {
+                            start3900IdRead(tab, node.dataset.field || 'idNo');
+                        }
+                    });
+                }
                 node.addEventListener('keydown', event => handleUnifiedKeydown(tab, event, node));
             });
         }
@@ -1623,9 +1691,32 @@
                 node.click();
                 return;
             }
-            if (node.dataset.navType === 'medium-trigger' && !tab.ui.customerLoaded) {
+            if (node.dataset.navType === 'medium-trigger') {
                 event.preventDefault();
-                openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
+                triggerSpecialNavigation(tab, node);
+                return;
+            }
+            if (node.dataset.navType === 'id-read') {
+                event.preventDefault();
+                const typeField = node.dataset.field && node.dataset.field.startsWith('verify.') ? 'verify.idType' : 'idType';
+                if (!getFormValue(tab.form, typeField)) {
+                    tab.ui.inlineMessage = '请先选择证件类型，再回车到证件号码。';
+                    renderTabs();
+                    requestAnimationFrame(() => focusField(typeField));
+                    return;
+                }
+                triggerSpecialNavigation(tab, node);
+                return;
+            }
+            if (node.dataset.navType === '1651-id-read') {
+                event.preventDefault();
+                if (!tab.form.certType) {
+                    tab.ui.inlineMessage = '请先选择证件类型，再回车到证件号码。';
+                    renderTabs();
+                    requestAnimationFrame(() => focusField('certType'));
+                    return;
+                }
+                triggerSpecialNavigation(tab, node);
                 return;
             }
             if (node.dataset.navType === 'lookup-1657') {
@@ -1697,11 +1788,26 @@
                     requestAnimationFrame(() => focusField('businessType'));
                     return;
                 }
+                if ((node.dataset.field === 'businessType' || node.dataset.field === 'verify.businessType') && String(node.value || '').trim()) {
+                    event.preventDefault();
+                    const submitButton = tradeStage.querySelector('[data-tab-action="3900-submit-verify"], [data-tab-action="submit-verify"]');
+                    if (submitButton) {
+                        submitButton.focus();
+                    } else {
+                        focusNextNode(node);
+                    }
+                    return;
+                }
             }
-            if (node.dataset.navType === 'id-read' && !tab.form.idNo) {
+            if (node.dataset.field === 'proxyFlag' && node.value === 'Y-是') {
+                event.preventDefault();
+                startProxy3900Link(tab);
+                return;
+            }
+            if (node.dataset.navType === 'id-read' && !getFormValue(tab.form, node.dataset.field || 'idNo')) {
                 event.preventDefault();
                 if (!tab.ui.readingIdCard) {
-                    start3900IdRead(tab);
+                    start3900IdRead(tab, node.dataset.field || 'idNo');
                 }
                 return;
             }
@@ -1733,6 +1839,10 @@
                 next.focus();
                 if (next.select) {
                     next.select();
+                }
+                const currentTab = state.tabs.find(item => item.id === state.activeTabId);
+                if (currentTab) {
+                    triggerSpecialNavigation(currentTab, next);
                 }
             }
         }
@@ -1770,7 +1880,44 @@
                 if (node.select) {
                     node.select();
                 }
+                const currentTab = state.tabs.find(item => item.id === state.activeTabId);
+                if (currentTab) {
+                    triggerSpecialNavigation(currentTab, node);
+                }
             }
+        }
+
+        function triggerSpecialNavigation(tab, node) {
+            if (!tab || !node) {
+                return false;
+            }
+            if (node.dataset.navType === 'medium-trigger') {
+                if (!tab.ui.mediumDialogOpen) {
+                    openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
+                }
+                return true;
+            }
+            if (node.dataset.navType === '1651-id-read') {
+                if (!tab.form.certType) {
+                    return true;
+                }
+                if (!tab.form.certNo && !tab.ui.readingIdCard) {
+                    start1651To3900Link(tab);
+                }
+                return true;
+            }
+            if (node.dataset.navType === 'id-read') {
+                const typeField = node.dataset.field && node.dataset.field.startsWith('verify.') ? 'verify.idType' : 'idType';
+                const targetForm = node.dataset.field && node.dataset.field.startsWith('verify.') ? (tab.form.verify || {}) : tab.form;
+                if (!getFormValue(tab.form, typeField)) {
+                    return true;
+                }
+                if (!targetForm.idNo && !tab.ui.readingIdCard) {
+                    start3900IdRead(tab, node.dataset.field || 'idNo');
+                }
+                return true;
+            }
+            return false;
         }
 
         function setFormValue(target, path, value) {
@@ -1862,6 +2009,7 @@
             tab.ui.mediumDialogStep = 'input-medium';
             tab.ui.mediumDialogError = '';
             renderTabs();
+            requestAnimationFrame(() => focusField('dialog.medium'));
         }
 
         function resolveDialogMediumSeed(tab) {
@@ -1963,7 +2111,7 @@
             if (!value) {
                 return false;
             }
-            const matched = createMockMediumByInput(value);
+            const matched = resolveMediumFromCurrentState(value) || resolveMediumFromCurrentState(resolvePassbookAccountNo(tab)) || createMockMediumByInput(value);
             Object.assign(tab.form, {
                 accountNo: matched.customerAccountNo || tab.form.accountNo,
                 accountMediumNo: matched.mediumNo || '',
@@ -2028,24 +2176,39 @@
             }, 3000);
         }
 
-        function start3900IdRead(tab) {
-
+        function start3900IdRead(tab, fieldPath = 'idNo') {
+            const isVerifyOverlay = fieldPath.startsWith('verify.');
+            const target = isVerifyOverlay ? (tab.form.verify || (tab.form.verify = {})) : tab.form;
             tab.ui.readingIdCard = true;
             tab.ui.readingIdCardMessage = '请刷身份证……';
             renderTabs();
             window.setTimeout(() => {
-                const idNo = tab.form.idNo || '371321198311107948';
-                const mock = createMockCustomerById(idNo);
-                tab.form.idNo = idNo;
-                tab.form.customerName = mock.customerName;
+                const existingId = getFormValue(tab.form, fieldPath) || target.idNo || (target.customerName === '代理人' ? '37132119900101123X' : '371321198311107948');
+                const mock = target.customerName === '代理人' ? { customerName: '代理人', idNo: existingId, idType: target.idType || '1001-第二代居民身份证', mobile: '', customerNo: 'DL000001' } : createMockCustomerById(existingId);
+                target.idType = target.idType || mock.idType || '1001-第二代居民身份证';
+                target.idNo = existingId;
+                target.customerName = target.customerName || mock.customerName;
+                target.identityPhoto = target.customerName === '代理人' ? '/images/proxy-avatar.png' : '/images/customer-avatar.png';
+                target.verifyPhoto = target.customerName === '代理人' ? '/images/proxy-avatar.png' : '/images/customer-avatar.png';
+                target.authority = target.authority || '沂南县公安局';
+                target.validUntil = target.validUntil || '2032-02-18';
+                target.checkResult = target.checkResult || '00-身份证号码与姓名一致并存在照片';
+                if (isVerifyOverlay) {
+                    tab.ui.verifyStage = 'result';
+                    tab.form.proxy = tab.form.proxy || {};
+                    tab.form.proxy.idType = target.idType;
+                    tab.form.proxy.idNo = target.idNo;
+                    tab.form.proxy.name = target.customerName;
+                } else if (tab.code === '3900') {
+                    tab.ui.verifyStage = 'result';
+                }
                 tab.ui.customerLoaded = true;
                 tab.ui.readingIdCard = false;
                 renderTabs();
                 requestAnimationFrame(() => {
+                    const closeButton = tradeStage.querySelector('[data-button-group="verify-result-actions"][data-button-index="3"]');
                     const idField = tradeStage.querySelector('[data-field="idNo"]');
-                    if (idField) {
-                        idField.focus();
-                    }
+                    (closeButton || idField)?.focus();
                 });
             }, 3000);
         }
@@ -2057,33 +2220,28 @@
             renderTabs();
             window.setTimeout(() => {
                 tab1651.ui.readingIdCard = false;
+                tab1651.form.certType = tab1651.form.certType || customerInfo.idType;
                 tab1651.form.certNo = customerInfo.idNo;
                 tab1651.form.customerName = customerInfo.customerName;
                 tab1651.form.mobile = customerInfo.mobile;
                 tab1651.form.customerNo = customerInfo.customerNo;
                 tab1651.ui.customerLoaded = true;
-
-                openTrade('3900');
-                const tab3900 = state.tabs.find(item => item.code === '3900');
-                if (tab3900) {
-                    tab3900.form.idType = tab1651.form.certType || customerInfo.idType;
-                    tab3900.form.idNo = customerInfo.idNo;
-                    tab3900.form.customerName = customerInfo.customerName;
-                    tab3900.form.businessType = tab3900.form.businessType || '01-银行账户业务';
-                    tab3900.ui.customerLoaded = true;
-
-                }
-
-                window.setTimeout(() => {
-                    if (tab3900) {
-                        tab1651.form.certType = tab3900.form.idType || tab1651.form.certType;
-                        tab1651.form.certNo = tab3900.form.idNo || tab1651.form.certNo;
-                        tab1651.form.customerName = tab3900.form.customerName || tab1651.form.customerName;
-                    }
-                    state.activeTabId = tab1651.id;
-                    tab1651.ui.nextFocusField = 'customerName';
-                    renderTabs();
-                }, 300);
+                tab1651.form.verify = tab1651.form.verify || {};
+                tab1651.form.verify.idType = tab1651.form.certType;
+                tab1651.form.verify.idNo = tab1651.form.certNo;
+                tab1651.form.verify.customerName = tab1651.form.customerName;
+                tab1651.form.verify.businessType = tab1651.form.verify.businessType || '01-银行账户业务';
+                tab1651.form.verify.identityPhoto = '/images/customer-avatar.png';
+                tab1651.form.verify.verifyPhoto = '/images/customer-avatar.png';
+                tab1651.form.verify.authority = tab1651.form.verify.authority || '沂南县公安局';
+                tab1651.form.verify.validUntil = tab1651.form.verify.validUntil || '2032-02-18';
+                tab1651.form.verify.checkResult = tab1651.form.verify.checkResult || '00-身份证号码与姓名一致并存在照片';
+                tab1651.ui.verifyStage = 'result';
+                renderTabs();
+                requestAnimationFrame(() => {
+                    const closeButton = tradeStage.querySelector('[data-button-group="verify-result-actions"][data-button-index="3"]');
+                    (closeButton || tradeStage.querySelector('[data-field="verify.checkResult"]'))?.focus();
+                });
             }, 3000);
         }
 
@@ -2168,18 +2326,77 @@
 
         function handleTabAction(tab, action, triggerNode) {
             switch (action) {
+                case 'attempt-end-service':
+                    if (state.tabs.length > 1) {
+                        tab.ui.systemAlert = '请结束当前交易！';
+                        renderTabs();
+                        return;
+                    }
+                    closeTrade(tab.id);
+                    return;
+                case 'close-alert-dialog':
+                    tab.ui.systemAlert = '';
+                    renderTabs();
+                    return;
+                case '3900-submit-verify':
+                case 'submit-verify':
+                    if (tab.form?.verify) {
+                        tab.form.proxy = tab.form.proxy || {};
+                        tab.form.proxy.idType = tab.form.verify.idType || tab.form.proxy.idType;
+                        tab.form.proxy.idNo = tab.form.verify.idNo || tab.form.proxy.idNo;
+                        tab.form.proxy.name = tab.form.verify.customerName || tab.form.proxy.name;
+                    }
+                    tab.ui.verifyStage = 'result';
+                    tab.ui.inlineMessage = '';
+                    renderTabs();
+                    return;
+                case 'verify-modify':
+                case 'verify-maintain-avatar':
+                case 'verify-print':
+                    return;
+                case '3900-close-verify':
+                    closeTrade(tab.id);
+                    return;
+                case 'close-verify':
+                    if (tab.form?.verify) {
+                        tab.form.proxy = tab.form.proxy || {};
+                        tab.form.proxy.idType = tab.form.verify.idType || tab.form.proxy.idType;
+                        tab.form.proxy.idNo = tab.form.verify.idNo || tab.form.proxy.idNo;
+                        tab.form.proxy.name = tab.form.verify.customerName || tab.form.proxy.name;
+                        if (tab.code === '1651') {
+                            tab.form.certType = tab.form.verify.idType || tab.form.certType;
+                            tab.form.certNo = tab.form.verify.idNo || tab.form.certNo;
+                            tab.form.customerName = tab.form.verify.customerName || tab.form.customerName;
+                        }
+                    }
+                    tab.ui.verifyStage = '';
+                    tab.ui.inlineMessage = '';
+                    tab.ui.nextFocusField = tab.code === '1651' ? 'customerName' : (tab.form.proxyFlag === 'Y-是' ? 'proxyFlag' : '');
+                    renderTabs();
+                    return;
                 case 'start-submit-flow':
                     tab.ui.submitStage = 'confirm-wait';
                     renderTabs();
                     return;
                 case 'customer-confirmed':
                     tab.ui.submitStage = 'success-popup';
+                    tab.ui.submitCountdown = 59;
                     renderTabs();
                     return;
                 case 'submit-success-confirm':
                     tab.ui.submitStage = 'sign-wait';
+                    tab.ui.submitCountdown = 59;
                     renderTabs();
+                    const timer = window.setInterval(() => {
+                        if (tab.ui.submitStage !== 'sign-wait') {
+                            window.clearInterval(timer);
+                            return;
+                        }
+                        tab.ui.submitCountdown = Math.max(0, (tab.ui.submitCountdown || 59) - 1);
+                        renderTabs();
+                    }, 1000);
                     window.setTimeout(() => {
+                        window.clearInterval(timer);
                         tab.ui.submitStage = 'receipt-preview';
                         renderTabs();
                     }, 3000);
@@ -2346,10 +2563,16 @@
             const firstCard = currentMedia.find(item => String(item.mediumType || '').includes('卡') || String(item.mediumNo || '').startsWith('62')) || currentMedia[0] || {};
             if (tab.code === '1651' || tab.code === '1657') {
                 if (String(tab.form.passbookFlag || '').includes('存单')) {
-                    return tab.form.accountNo || firstCard.mediumNo || firstCard.customerAccountNo || '--';
+                    return resolvePassbookAccountNo(tab) || firstCard.mediumNo || firstCard.customerAccountNo || '--';
                 }
             }
             return tab.form.accountNo || tab.form.mediumNo || tab.form.customerAccountNo || tab.form.depositPrintNo || firstCard.mediumNo || firstCard.customerAccountNo || '--';
+        }
+
+        function resolvePassbookAccountNo(tab) {
+            const mediaList = state.customerState.customer?.mediaDetails || [];
+            const passbookMedium = mediaList.find(item => String(item.depositType || item.mediumSubType || '').includes('存单') || String(item.voucherNo || '').trim());
+            return tab.form.accountNo || passbookMedium?.customerAccountNo || passbookMedium?.mediumNo || '';
         }
 
         function formatBusinessDate(date) {
@@ -2370,32 +2593,44 @@
                 return;
             }
             tab.ui.proxy3900Opening = true;
-            openTrade('3900');
-            const tab3900 = state.tabs.find(item => item.code === '3900');
-            if (tab3900) {
-                tab3900.form.idType = tab.form.proxy.idType || '1001-第二代居民身份证';
-                tab3900.form.idNo = tab.form.proxy.idNo || '';
-                tab3900.form.customerName = tab.form.proxy.name || '';
-                tab3900.form.businessType = tab3900.form.businessType || '01-银行账户业务';
-                tab3900.ui.customerLoaded = Boolean(tab3900.form.customerName || tab3900.form.idNo);
-            }
-            window.setTimeout(() => {
-                tab.ui.proxy3900Opening = false;
-                state.activeTabId = tab.id;
-                renderTabs();
-            }, 240);
+            const proxyIdNo = (tab.form.proxy && tab.form.proxy.idNo) || '37132119900101123X';
+            tab.form.proxy = tab.form.proxy || {};
+            tab.form.proxy.idType = tab.form.proxy.idType || '1001-第二代居民身份证';
+            tab.form.proxy.idNo = proxyIdNo;
+            tab.form.proxy.name = tab.form.proxy.name || '代理人';
+            tab.form.verify = tab.form.verify || {};
+            tab.form.verify.idType = tab.form.proxy.idType;
+            tab.form.verify.idNo = '';
+            tab.form.verify.customerName = tab.form.proxy.name;
+            tab.form.verify.businessType = tab.form.verify.businessType || '01-银行账户业务';
+            tab.form.verify.identityPhoto = '/images/proxy-avatar.png';
+            tab.form.verify.verifyPhoto = '/images/proxy-avatar.png';
+            tab.form.verify.checkResult = tab.form.verify.checkResult || '00-身份证号码与姓名一致并存在照片';
+            tab.form.verify.authority = tab.form.verify.authority || '沂南县公安局';
+            tab.form.verify.validUntil = tab.form.verify.validUntil || '2032-02-18';
+            tab.ui.customerLoaded = true;
+            tab.ui.verifyStage = 'entry';
+            tab.ui.proxy3900Opening = false;
+            state.activeTabId = tab.id;
+            renderTabs();
+            requestAnimationFrame(() => {
+                const firstVerifyField = tradeStage.querySelector('[data-field="verify.idType"], [data-field="verify.businessType"], [data-field="verify.idNo"]');
+                firstVerifyField?.focus();
+            });
         }
 
         function buildReceiptPreviewData(tab) {
             const customer = state.customerState.customer || {};
             const mediaList = customer.mediaDetails || [];
             const firstMedium = mediaList[0] || {};
+            const transactionChineseName = tab.name || '交易码的汉字名称';
             return {
-                title: `${tab.code}交易业务凭证`,
+                title: `${transactionChineseName}凭证`,
+                transactionChineseName,
                 businessFlowNo: `26${Date.now()}`.slice(0, 20),
                 transactionCode: tab.code,
                 transactionTime: new Date().toTimeString().slice(0, 8),
-                tellerNo: state.teller?.tellerCode || '123456',
+                tellerNo: getDisplayTellerCode(state.teller?.tellerCode || '1'),
                 authTellerNo: '',
                 branchNo: '301000001',
                 currency: tab.form.currency || firstMedium.currency || 'CNY人民币',
@@ -2429,7 +2664,7 @@
                         </div>
 
                         <div class="receipt-red-line"></div>
-                        <div class="receipt-main-title">个人活期存款现金支取凭证</div>
+                        <div class="receipt-main-title">${escapeHtml(r.transactionChineseName)}凭证</div>
 
                         <div class="receipt-grid">
                             <div>凭证流水号：</div><div>${escapeHtml(r.businessFlowNo)}</div>
@@ -2521,6 +2756,23 @@
             scaleBox.style.height = `${paper.offsetHeight * scale}px`;
         }
 
+        function renderSystemAlertDialog(tab) {
+            if (!tab.ui.systemAlert) {
+                return '';
+            }
+            return `
+                <div class="trade-overlay">
+                    <div class="bank-dialog small-dialog read-id-dialog system-alert-dialog">
+                        <div class="bank-dialog-title">提示</div>
+                        <div class="read-id-message">${escapeHtml(tab.ui.systemAlert)}</div>
+                        <div class="trade-action-row bank-action-row dialog-actions dialog-align-end">
+                            <button type="button" class="counter-form-btn" data-tab-action="close-alert-dialog" data-enter-target="true">确定</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
         function renderCommonSubmitOverlay(tab) {
             if (!['confirm-wait','success-popup','sign-wait'].includes(tab.ui.submitStage)) {
                 return '';
@@ -2530,7 +2782,7 @@
                     <div class="trade-overlay">
                         <div class="bank-dialog submit-flow-dialog wide-dialog">
                             <div class="bank-dialog-title">等待客户确认交易信息</div>
-                            <div class="submit-flow-row"><span>客户正在确认交易信息，请稍后……</span><strong>倒计时：59</strong></div>
+                            <div class="submit-flow-row"><span>客户正在确认交易信息，请稍后……</span><strong>倒计时：${tab.ui.submitCountdown || 59}</strong></div>
                             <div class="trade-action-row bank-action-row dialog-actions single-center-actions">
                                 <button type="button" class="counter-form-btn" data-tab-action="customer-confirmed" data-enter-target="true">客户已确认</button>
                             </div>
@@ -2555,7 +2807,7 @@
                 <div class="trade-overlay">
                     <div class="bank-dialog submit-flow-dialog sign-wait-dialog">
                         <div class="bank-dialog-title">提示</div>
-                        <div class="submit-flow-row"><span>客户签字确认中，请稍候……</span><strong>倒计时：59</strong></div>
+                        <div class="submit-flow-row"><span>客户签字确认中，请稍候……</span><strong>倒计时：${tab.ui.submitCountdown || 59}</strong></div>
                         <div class="trade-action-row bank-action-row dialog-actions single-center-actions">
                             <button type="button" class="counter-form-btn" disabled data-enter-target="true">取消签名</button>
                         </div>

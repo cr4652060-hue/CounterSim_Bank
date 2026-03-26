@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.countersim.bank.config.CustomerImportProperties;
 import com.countersim.bank.domain.entity.Customer;
 import com.countersim.bank.domain.entity.CustomerMedia;
+import com.countersim.bank.mapper.CounterCustomerMapper;
 import com.countersim.bank.mapper.CustomerMapper;
 import com.countersim.bank.mapper.CustomerMediaMapper;
 import com.countersim.bank.service.ExcelImportService;
@@ -37,6 +38,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final CustomerMapper customerMapper;
     private final CustomerMediaMapper customerMediaMapper;
+    private final CounterCustomerMapper counterCustomerMapper;
     private final CustomerImportProperties customerImportProperties;
     private final ResourceLoader resourceLoader;
     private final DataFormatter dataFormatter = new DataFormatter();
@@ -64,6 +66,7 @@ public class ExcelImportServiceImpl implements ExcelImportService {
             if (iterator.hasNext()) {
                 iterator.next();
             }
+            clearExistingCustomerData();
             int imported = 0;
             while (iterator.hasNext()) {
                 Row row = iterator.next();
@@ -78,6 +81,13 @@ public class ExcelImportServiceImpl implements ExcelImportService {
         } catch (Exception ex) {
             throw new IllegalStateException("导入 Excel 失败: " + ex.getMessage(), ex);
         }
+    }
+
+
+    private void clearExistingCustomerData() {
+        counterCustomerMapper.delete(null);
+        customerMediaMapper.delete(null);
+        customerMapper.delete(null);
     }
 
     private InputStream openInputStream(String location) throws IOException {
