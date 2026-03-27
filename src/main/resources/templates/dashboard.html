@@ -902,16 +902,17 @@
                 { seq: '1', currency: '156-CNY 人民币', lastBalance: '831.20', income: '1.00', expense: '0.00', transferIn: '0.00', transferOut: '0.00', balance: '832.20' }
             ];
             const voucherRows = [
-                ['1','0611','个人一卡通','02622320335348268','02622320335348270','3'],
-                ['2','0623','福民卡','02621521161144468','02621521161144474','7'],
-                ['3','0624','生肖卡','02622320335346025','02622320335346028','4'],
-                ['4','0658','省三代社保卡','02622320333633788','02622320333633788','1'],
-                ['5','0658','省三代社保卡','02622320336586588','02622320336586588','1'],
-                ['6','0658','省三代社保卡','02622320336586635','02622320336586638','4'],
-                ['7','0658','省三代社保卡','02622320336586640','02622320336586641','2'],
-                ['8','0660','单位结算卡（新）','0262365911600116955','0262365911600116956','2'],
-                ['9','0702','印鉴卡片','004124242','004124260','9'],
-                ['10','0801','存款存折','221972737','221972743','7']
+                ['1','0803','普通版存单', f.blankDepositStartNo || '0790744821', f.blankDepositEndNo || '0790744829','9'],
+                ['2','0611','个人一卡通','02622320335348268','02622320335348270','3'],
+                ['3','0623','福民卡','02621521161144468','02621521161144474','7'],
+                ['4','0624','生肖卡','02622320335346025','02622320335346028','4'],
+                ['5','0658','省三代社保卡','02622320333633788','02622320333633788','1'],
+                ['6','0658','省三代社保卡','02622320336586588','02622320336586588','1'],
+                ['7','0658','省三代社保卡','02622320336586635','02622320336586638','4'],
+                ['8','0658','省三代社保卡','02622320336586640','02622320336586641','2'],
+                ['9','0660','单位结算卡（新）','0262365911600116955','0262365911600116956','2'],
+                ['10','0702','印鉴卡片','004124242','004124260','9'],
+                ['11','0801','存款存折','221972737','221972743','7']
             ];
             return `
                 <div class="trade-page trade-page-single trade-3900-page">
@@ -1502,8 +1503,8 @@
                         </div>
                     </div>
                     <div class="trade-action-row bank-action-row dialog-actions">
-                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}submit-verify" data-enter-target="true">提交</button>
-                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify" data-enter-target="true">退出</button>
+                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}submit-verify" data-enter-target="true" data-button-group="verify-entry-actions" data-button-index="0">提交</button>
+                        <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify" data-enter-target="true" data-button-group="verify-entry-actions" data-button-index="1">退出</button>
                     </div>
                 </div>
             `;
@@ -1633,9 +1634,25 @@
                         if (event.target.value === 'Y-是') {
                             tab.ui.proxyOpen = false;
                             startProxy3900Link(tab);
-                        } else if (tab.code !== '3900') {
-                            tab.ui.verifyStage = '';
+                        } else {
+                            if (tab.form.proxy) {
+                                tab.form.proxy.idType = '';
+                                tab.form.proxy.idNo = '';
+                                tab.form.proxy.name = '';
+                                tab.form.proxy.phone = '';
+                                tab.form.proxy.nationality = '';
+                                tab.form.proxy.gender = '';
+                                tab.form.proxy.expiry = '';
+                                tab.form.proxy.region = '';
+                            }
+                            if (tab.code !== '3900') {
+                                tab.ui.verifyStage = '';
+                            }
                         }
+                    }
+                    if (tab.code === '0055' && (path === 'queryType' || path === 'voucherLevel')) {
+                        renderTabs();
+                        return;
                     }
                     if (tab.code === '1657') {
                         if (path === 'withdrawAmount') {
@@ -1654,6 +1671,17 @@
                 };
                 fieldNode.addEventListener('input', syncValue);
                 fieldNode.addEventListener('change', syncValue);
+            });
+        }
+
+
+        function syncRenderedFieldValues(tab) {
+            tradeStage.querySelectorAll('[data-field]').forEach(fieldNode => {
+                const path = fieldNode.dataset.field;
+                if (!path || path === 'dialog.medium') {
+                    return;
+                }
+                setFormValue(tab.form, path, fieldNode.value);
             });
         }
 
@@ -1707,6 +1735,12 @@
         }
 
         function handleUnifiedKeydown(tab, event, node) {
+            if (node.dataset.buttonGroup === 'medium-method' && ['0', '1', '2'].includes(event.key)) {
+                event.preventDefault();
+                const target = tradeStage.querySelector(`[data-button-group="medium-method"][data-button-index="${event.key}"]`);
+                target?.focus();
+                return;
+            }
             if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
                 if (node.dataset.buttonGroup) {
                     event.preventDefault();
@@ -1720,7 +1754,7 @@
             if (node.dataset.field) {
                 setFormValue(tab.form, node.dataset.field, node.value);
             }
-            if (node.dataset.buttonGroup) {
+            if (node.tagName === 'BUTTON' && (node.dataset.tabAction || node.dataset.closeTrade || node.dataset.customerAction || node.dataset.method || node.dataset.buttonGroup)) {
                 event.preventDefault();
                 node.click();
                 return;
@@ -1733,6 +1767,7 @@
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
                 event.preventDefault();
                 focusField('accountNo');
+                requestAnimationFrame(() => openMediumDialog(tab, '1062'));
                 return;
             }
             if (node.dataset.field === 'certType' && tab.code === '1651') {
@@ -2182,9 +2217,12 @@
 
 
         function attempt0055Lookup(tab) {
-            if (!tab.form.queryType || (!tab.form.targetAccountNo && !tab.form.targetVoucherNo)) {
-                return true;
-            }
+            const tellerNo = getDisplayTellerCode(state.teller?.tellerCode || '1');
+            tab.form.tellerNo = tab.form.tellerNo || tellerNo;
+            tab.form.targetAccountNo = tab.form.targetAccountNo || tellerNo.slice(-6);
+            tab.form.targetVoucherNo = tab.form.targetVoucherNo || '301000001106';
+            tab.form.blankDepositStartNo = tab.form.blankDepositStartNo || '0790744821';
+            tab.form.blankDepositEndNo = tab.form.blankDepositEndNo || '0790744829';
             return true;
         }
 
@@ -2248,10 +2286,12 @@
                 tab.ui.readingIdCard = false;
                 tab.ui.readingIdCardTimer = null;
                 if (isVerifyOverlay) {
-                    tab.form.proxy = tab.form.proxy || {};
-                    tab.form.proxy.idType = target.idType;
-                    tab.form.proxy.idNo = target.idNo;
-                    tab.form.proxy.name = target.customerName;
+                    if (tab.form.proxyFlag === 'Y-是') {
+                        tab.form.proxy = tab.form.proxy || {};
+                        tab.form.proxy.idType = target.idType;
+                        tab.form.proxy.idNo = target.idNo;
+                        tab.form.proxy.name = target.customerName;
+                    }
                     tab.ui.verifyStage = 'entry';
                     tab.ui.nextFocusField = 'verify.customerName';
                 } else if (tab.code === '3900') {
@@ -2376,6 +2416,7 @@
         }
 
         function handleTabAction(tab, action, triggerNode) {
+            syncRenderedFieldValues(tab);
             switch (action) {
                 case 'attempt-end-service':
                     if (state.tabs.length > 1) {
@@ -2391,7 +2432,7 @@
                     return;
                 case '3900-submit-verify':
                 case 'submit-verify':
-                    if (tab.form?.verify) {
+                    if (tab.form?.verify && tab.form.proxyFlag === 'Y-是') {
                         tab.form.proxy = tab.form.proxy || {};
                         tab.form.proxy.idType = tab.form.verify.idType || tab.form.proxy.idType;
                         tab.form.proxy.idNo = tab.form.verify.idNo || tab.form.proxy.idNo;
@@ -2409,20 +2450,24 @@
                     closeTrade(tab.id);
                     return;
                 case 'close-verify':
-                    if (tab.form?.verify) {
+                    if (tab.form?.verify && tab.form.proxyFlag === 'Y-是') {
                         tab.form.proxy = tab.form.proxy || {};
                         tab.form.proxy.idType = tab.form.verify.idType || tab.form.proxy.idType;
                         tab.form.proxy.idNo = tab.form.verify.idNo || tab.form.proxy.idNo;
                         tab.form.proxy.name = tab.form.verify.customerName || tab.form.proxy.name;
-                        if (tab.code === '1651') {
-                            tab.form.certType = tab.form.verify.idType || tab.form.certType;
-                            tab.form.certNo = tab.form.verify.idNo || tab.form.certNo;
-                            tab.form.customerName = tab.form.verify.customerName || tab.form.customerName;
-                        }
+                    }
+                    if (tab.form?.verify && tab.code === '1651') {
+                        tab.form.certType = tab.form.verify.idType || tab.form.certType;
+                        tab.form.certNo = tab.form.verify.idNo || tab.form.certNo;
+                        tab.form.customerName = tab.form.verify.customerName || tab.form.customerName;
                     }
                     tab.ui.verifyStage = '';
                     tab.ui.inlineMessage = '';
                     tab.ui.nextFocusField = tab.code === '1651' ? 'customerName' : (tab.form.proxyFlag === 'Y-是' ? 'proxyFlag' : '');
+                    renderTabs();
+                    return;
+                case 'lookup-0055':
+                    attempt0055Lookup(tab);
                     renderTabs();
                     return;
                 case 'start-submit-flow':
@@ -2700,7 +2745,11 @@
                 tab.form.amount,
                 tab.form.depositAmount,
                 tab.form.originalAmount,
-                tab.form.unpaidPrincipal
+                tab.form.unpaidPrincipal,
+                tab.form.cashAmount,
+                tab.form.transferAmount,
+                tab.form.receiveAmount,
+                tab.form.balanceAmount
             ].find(v => String(v ?? '').trim() !== '') || '0.00';
             const resolvedAmount = formatReceiptAmount(rawAmount) || '0.00';
             const rawFee = tab.form.feeAmount || tab.form.serviceFee || '0.00';
