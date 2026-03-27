@@ -191,7 +191,8 @@
                     passwordReady: {},
                     businessTypeArmed: false,
                     nextFocusField: '',
-                    inlineMessage: ''
+                    inlineMessage: '',
+                    customerAgreed: false
                 },
                 form: createInitialForm(definition.code)
             };
@@ -225,6 +226,13 @@
                         targetAccountNo: '',
                         targetVoucherNo: '',
                         idNo: '',
+                        inventoryCurrentCash: '',
+                        inventoryAuthThreshold: '',
+                        inventoryOverflowThreshold: '',
+                        inventoryVoucherType: '',
+                        blankDepositStartNo: '',
+                        blankDepositEndNo: '',
+                        inventoryRemainCount: '',
                     };
                 case '3900':
                     return {
@@ -899,20 +907,19 @@
             const tellerNo = f.tellerNo || getDisplayTellerCode(state.teller?.tellerCode || '1');
             const tellerName = state.teller?.tellerName || '袁俊玲';
             const cashRows = [
-                { seq: '1', currency: '156-CNY 人民币', lastBalance: '831.20', income: '1.00', expense: '0.00', transferIn: '0.00', transferOut: '0.00', balance: '832.20' }
+                {
+                    seq: '1',
+                    currency: '156-CNY 人民币',
+                    lastBalance: formatMoney(f.inventoryCurrentCash),
+                    income: '0.00',
+                    expense: '0.00',
+                    transferIn: '0.00',
+                    transferOut: '0.00',
+                    balance: formatMoney(f.inventoryCurrentCash)
+                }
             ];
             const voucherRows = [
-                ['1','0803','普通版存单', f.blankDepositStartNo || '0790744821', f.blankDepositEndNo || '0790744829','9'],
-                ['2','0611','个人一卡通','02622320335348268','02622320335348270','3'],
-                ['3','0623','福民卡','02621521161144468','02621521161144474','7'],
-                ['4','0624','生肖卡','02622320335346025','02622320335346028','4'],
-                ['5','0658','省三代社保卡','02622320333633788','02622320333633788','1'],
-                ['6','0658','省三代社保卡','02622320336586588','02622320336586588','1'],
-                ['7','0658','省三代社保卡','02622320336586635','02622320336586638','4'],
-                ['8','0658','省三代社保卡','02622320336586640','02622320336586641','2'],
-                ['9','0660','单位结算卡（新）','0262365911600116955','0262365911600116956','2'],
-                ['10','0702','印鉴卡片','004124242','004124260','9'],
-                ['11','0801','存款存折','221972737','221972743','7']
+                ['1', '0803', f.inventoryVoucherType || '普通版存单', f.blankDepositStartNo || '--', f.blankDepositEndNo || '--', String(f.inventoryRemainCount || '0')]
             ];
             return `
                 <div class="trade-page trade-page-single trade-3900-page">
@@ -937,7 +944,6 @@
                                         ${voucherRows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join('')}</tr>`).join('')}
                                     </tbody>
                                 </table>
-                                <div style="margin-top:8px;">下一页</div>
                             ` : `
                                 <table class="inventory-table" style="width:100%;border-collapse:collapse;">
                                     <thead><tr><th>序号</th><th>币种</th><th>上日余额</th><th>本日收入</th><th>本日付出</th><th>调入金额</th><th>调出金额</th><th>库箱余额</th></tr></thead>
@@ -1778,6 +1784,13 @@
             }
             if (node.dataset.field === 'idType' || node.dataset.field === 'verify.idType') {
                 event.preventDefault();
+                if (!String(node.value || '').trim()) {
+                    const firstOption = Array.from(node.options || []).find(option => String(option.value || '').trim());
+                    if (firstOption) {
+                        node.value = firstOption.value;
+                        setFormValue(tab.form, node.dataset.field, firstOption.value);
+                    }
+                }
                 const nextField = node.dataset.field === 'verify.idType' ? 'verify.idNo' : 'idNo';
                 focusField(nextField);
                 return;
@@ -1855,9 +1868,15 @@
                     return;
                 }
                 if (node.dataset.field === 'businessType' && !String(node.value || '').trim()) {
-                    event.preventDefault();
-                    focusField('businessType');
-                    return;
+                    const firstOption = Array.from(node.options || []).find(option => String(option.value || '').trim());
+                    if (firstOption) {
+                        node.value = firstOption.value;
+                        setFormValue(tab.form, node.dataset.field, firstOption.value);
+                    } else {
+                        event.preventDefault();
+                        focusField('businessType');
+                        return;
+                    }
                 }
                 if ((node.dataset.field === 'businessType' || node.dataset.field === 'verify.businessType') && String(node.value || '').trim()) {
                     event.preventDefault();
@@ -2221,8 +2240,32 @@
             tab.form.tellerNo = tab.form.tellerNo || tellerNo;
             tab.form.targetAccountNo = tab.form.targetAccountNo || tellerNo.slice(-6);
             tab.form.targetVoucherNo = tab.form.targetVoucherNo || '301000001106';
-            tab.form.blankDepositStartNo = tab.form.blankDepositStartNo || '0790744821';
-            tab.form.blankDepositEndNo = tab.form.blankDepositEndNo || '0790744829';
+            const queryType = String(tab.form.queryType || '1-现金/现钞').startsWith('2-') ? '2' : '1';
+            fetch(`/api/inventory/0055?type=${queryType}`)
+                .then(resp => resp.ok ? resp.json() : null)
+                .then(result => {
+                    if (!result) {
+                        tab.ui.inlineMessage = '未查询到柜员库箱数据。';
+                        renderTabs();
+                        return;
+                    }
+                    tab.form.tellerNo = getDisplayTellerCode(result.tellerCode || tellerNo);
+                    tab.form.targetAccountNo = tab.form.targetAccountNo || tab.form.tellerNo.slice(-6);
+                    tab.form.inventoryCurrentCash = result.currentCash ?? tab.form.inventoryCurrentCash;
+                    tab.form.inventoryAuthThreshold = result.authThreshold ?? tab.form.inventoryAuthThreshold;
+                    tab.form.inventoryOverflowThreshold = result.overflowThreshold ?? tab.form.inventoryOverflowThreshold;
+                    tab.form.inventoryVoucherType = result.voucherType || tab.form.inventoryVoucherType;
+                    tab.form.blankDepositStartNo = result.startNo || tab.form.blankDepositStartNo;
+                    tab.form.blankDepositEndNo = result.endNo || tab.form.blankDepositEndNo;
+                    tab.form.inventoryRemainCount = result.remainCount ?? tab.form.inventoryRemainCount;
+                    tab.ui.inlineMessage = '';
+                    tab.ui.customerLoaded = true;
+                    renderTabs();
+                })
+                .catch(() => {
+                    tab.ui.inlineMessage = '库箱查询失败，请稍后重试。';
+                    renderTabs();
+                });
             return true;
         }
 
@@ -2244,6 +2287,47 @@
             });
             tab.ui.customerLoaded = true;
             return true;
+        }
+
+        function resolveSettlementAmount(tab) {
+            const amountFields = {
+                '1061': ['depositAmount', 'amount'],
+                '1062': ['withdrawAmount', 'amount'],
+                '1651': ['amount', 'depositAmount'],
+                '1657': ['withdrawAmount', 'amount']
+            };
+            const fields = amountFields[tab.code] || ['amount'];
+            for (const key of fields) {
+                const raw = String(tab.form[key] ?? '').replace(/,/g, '').trim();
+                const num = Number(raw);
+                if (Number.isFinite(num) && num > 0) {
+                    return num;
+                }
+            }
+            return 0;
+        }
+
+        async function settleTradeInventory(tab) {
+            const payload = {
+                tradeCode: tab.code,
+                amount: resolveSettlementAmount(tab),
+                customerAgreed: Boolean(tab.ui.customerAgreed)
+            };
+            try {
+                const resp = await fetch('/api/inventory/settle', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = resp.ok ? await resp.json() : null;
+                if (result) {
+                    tab.ui.inlineMessage = `交易已入库，柜员现金余额：${formatMoney(result.currentCash)}`;
+                } else {
+                    tab.ui.inlineMessage = '交易已提交，但未获取到最新库箱数据。';
+                }
+            } catch (error) {
+                tab.ui.inlineMessage = '交易提交成功，但更新库箱数据失败，请稍后重试。';
+            }
         }
 
         function openPasswordDialog(tab, field) {
@@ -2475,6 +2559,7 @@
                     renderTabs();
                     return;
                 case 'customer-confirmed':
+                    tab.ui.customerAgreed = true;
                     tab.ui.submitStage = 'success-popup';
                     tab.ui.submitCountdown = 59;
                     renderTabs();
@@ -2499,7 +2584,16 @@
                     return;
                 case 'finish-submit-flow':
                     tab.ui.submitStage = '';
+                    if (['1061', '1062', '1651', '1657'].includes(tab.code) && tab.ui.customerAgreed) {
+                        settleTradeInventory(tab)
+                            .finally(() => {
+                                tab.ui.customerAgreed = false;
+                                renderTabs();
+                            });
+                        return;
+                    }
                     tab.ui.inlineMessage = '电子凭证预览已提交，当前为模拟流程。';
+                    tab.ui.customerAgreed = false;
                     renderTabs();
                     return;
                 case 'cancel-submit-flow':
@@ -2691,6 +2785,11 @@
             const m = String(date.getMonth() + 1).padStart(2, '0');
             const d = String(date.getDate()).padStart(2, '0');
             return `${y}-${m}-${d}`;
+        }
+
+        function formatMoney(value) {
+            const num = Number(String(value ?? '').replace(/,/g, ''));
+            return Number.isFinite(num) ? num.toFixed(2) : '0.00';
         }
 
         function shouldRequireNewPrintNo(tab) {
