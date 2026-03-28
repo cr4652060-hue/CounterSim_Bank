@@ -1607,9 +1607,9 @@
             `;
         }
         function verifyResultRow(labelText, value) {
-            bindFieldChanges(activeTab);
             return `<label><span>${labelText}</span><input value="${escapeHtml(value || '')}" readonly></label>`;
         }
+
 
         function bindTradeStageActions(activeTab) {
             bindUnifiedFocusStateMachine(activeTab);
@@ -2004,6 +2004,21 @@
                 cursor = cursor[segment];
             });
             cursor[segments.at(-1)] = value;
+        }
+
+        function getFormValue(target, path) {
+            if (!target || !path) {
+                return '';
+            }
+            const segments = path.split('.');
+            let cursor = target;
+            for (const segment of segments) {
+                if (cursor == null || typeof cursor !== 'object') {
+                    return '';
+                }
+                cursor = cursor[segment];
+            }
+            return cursor ?? '';
         }
 
         function fallbackIfEmpty(value, fallback = '') {
