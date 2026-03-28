@@ -1082,7 +1082,7 @@
                             <div class="trade-section-title">客户信息</div>
                             <div class="bank-form-rows compact-rows">
                                 <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('证件类型', select('certType', f.certType || '1001-第二代居民身份证', ['1001-第二代居民身份证', '1002-临时身份证', '1003-中国护照'], { yellow: true, autofocus: true, navType: 'select' }))}
+                                    ${bankCell('证件类型', select('certType', f.certType || '', ['','1001-第二代居民身份证', '1002-临时身份证', '1003-中国护照'], { yellow: true, autofocus: true, navType: 'select' }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                                 <div class="bank-form-row bank-form-row-span-left">
@@ -1100,21 +1100,21 @@
                             <div class="trade-section-title">交易信息</div>
                             <div class="bank-form-rows">
                                 <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('交易类别', select('tradeCategory', f.tradeCategory || '1-现金', ['1-现金', '2-转账'], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('交易类别', select('tradeCategory', f.tradeCategory || '', ['','1-现金', '2-转账'], { yellow: true, navType: 'select' }))}
 
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('币种', select('currency', f.currency || '156-CNY 人民币', ['156-CNY 人民币'], { yellow: true, navType: 'select' }))}
-                                    ${bankCell('钞汇标志', select('cashFlag', f.cashFlag || '0-钞', ['0-钞'], { gray: true, readonly: true, navType: 'select' }))}
+                                    ${bankCell('钞汇标志', select('cashFlag', f.cashFlag || '', ['','0-钞'], { gray: true, readonly: true, navType: 'select' }))}
 
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('产品代码', input('productCode', f.productCode, { yellow: true, navType: 'input' }))}
+                                    ${bankCell('产品代码', input('productCode', f.productCode || '', ['', '999TD000001-个人整存整取储蓄存款', '999TD000002-个人定活两便储蓄存款','999TD000007-个人通知存款'], { yellow: true, navType: 'input' }))}
                                     ${bankCell('存期', select('term', f.term || '', ['', '01-3个月', '02-6个月', '03-1年', '04-2年', '05-3年'], { yellow: true, navType: 'select', allowEmpty: true }))}
 
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('转存标志', select('transferFlag', f.transferFlag || '', ['', '1-自动转存', '0-不转存'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('转存标志', select('transferFlag', f.transferFlag || '0-不自动转存', ['', '1-自动转存', '0-不自动转存'], { yellow: true, navType: 'select', allowEmpty: true }))}
                                     ${bankCell('转存方式', select('transferMode', f.transferMode || '', ['', '1-本息转存', '2-本金转存'], { yellow: true, navType: 'select', allowEmpty: true }))}
 
                                 </div>
@@ -1122,8 +1122,8 @@
                                      ${bankCell('利息转入账号', input('interestAccount', f.interestAccount, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('支取方式', select('withdrawMode', f.withdrawMode || '1001-凭单（折）密', ['1001-凭单（折）密', '0001-凭密码'], { yellow: true, navType: 'select' }))}
-                                    ${bankCell('通存通兑标志', select('interBankFlag', f.interBankFlag || '', ['', '1-通存通兑'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('支取方式', select('withdrawMode', f.withdrawMode || '', ['','1001-凭单（折）密'], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('通存通兑标志', select('interBankFlag', f.interBankFlag || '', ['', '0-不通存通兑','1-通存通兑'], { yellow: true, navType: 'select', allowEmpty: true }))}
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('金额', input('amount', f.amount, { yellow: true, navType: 'input' }))}
@@ -1157,7 +1157,7 @@
                             <div class="trade-section-title">代理信息</div>
                             <div class="bank-form-rows compact-rows">
                                 <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('是否代理', select('proxyFlag', f.proxyFlag || 'N-否', ['N-否', 'Y-是'], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('是否代理', select('proxyFlag', f.proxyFlag || 'N-否',  ['N-否', 'Y-是'], { yellow: true, navType: 'select' }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
@@ -1250,7 +1250,7 @@
                                     ${bankCell('交易类别', select('tradeType', f.tradeType || '', [''], { yellow: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('币种', select('currency', f.currency || '156-CNY 人民币', ['156-CNY 人民币'], { gray: true, readonly: true, navType: 'select' }))}
+                                    ${bankCell('币种', select('currency', f.currency || '', ['','156-CNY 人民币'], { gray: true, readonly: true, navType: 'select' }))}
                                     ${bankCell('钞汇标志', select('cashFlag', f.cashFlag || '', [''], { gray: true, readonly: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
@@ -1304,7 +1304,7 @@
                             <div class="trade-section-title">代理信息</div>
                             <div class="bank-form-rows compact-rows">
                                 <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('是否代理', select('proxyFlag', f.proxyFlag || 'N-否', ['N-否', 'Y-是'], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('是否代理', select('proxyFlag', f.proxyFlag || 'N-否',  ['N-否', 'Y-是'], { yellow: true, navType: 'select' }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                                 <div class="bank-form-row">
