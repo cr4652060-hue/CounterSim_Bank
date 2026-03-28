@@ -162,6 +162,32 @@
             }
             return raw;
         }
+        function normalizeCustomerState(raw) {
+            if (!raw || !raw.serviceStatus) {
+                return { serviceStatus: 'NONE', customer: null, intent: null };
+            }
+            return raw;
+        }
+
+        // 找到任何一个已带出客户的交易标签（1061/1062/1651/1657）
+        function findCustomerLoadedTab() {
+            return state.tabs.find(t =>
+                ['1061', '1062', '1651', '1657'].includes(t.code) && t.ui.customerLoaded
+            ) || null;
+        }
+
+        // 读取嵌套表单值（与 setFormValue 配套）
+        function getFormValue(target, path) {
+            if (!target || !path) return '';
+            const segments = path.split('.');
+            let cursor = target;
+            for (const seg of segments) {
+                if (cursor == null || typeof cursor !== 'object') return '';
+                cursor = cursor[seg];
+            }
+            return cursor ?? '';
+        }
+
 
         function hydrateTabs() {
             const storedTabs = safeJsonParse(sessionStorage.getItem(STORAGE_KEYS.tabs), []);
@@ -590,6 +616,73 @@
 
 
         function renderSidebarPanel(activeTab) {
+            // 优先找任意已带出客户的交易标签
+            const customerTab = findCustomerLoadedTab();
+
+            // 无论当前在哪个标签，只要有带出客户的交易标签就显示客户区
+            if (customerTab) {
+                const summary = buildSidebarCustomerSummary(customerTab);
+                const proxyChecked = customerTab.form.proxyFlag === 'Y-是' || hasProxyFilled(customerTab.form.proxy);
+                return `
+                    <div class="sidebar-mode sidebar-mode-customer bank-sidebar-customer-mode">
+                        <section class="sidebar-panel sidebar-panel-block bank-customer-info-panel">
+                            <div class="panel-caption">客户信息区</div>
+                            <div class="bank-customer-profile-card">
+                                <div class="bank-customer-profile-main">
+                                    <div class="bank-customer-kv"><span>客户名称:</span><strong>${escapeHtml(summary.name || '--')}</strong></div>
+                                    <div class="bank-customer-kv"><span>关键手机号:</span><strong>${escapeHtml(summary.mobile || '--')}</strong></div>
+                                    <div class="bank-customer-kv"><span>核验时间:</span><strong>1</strong></div>
+                                    <div class="bank-customer-kv"><span>实名状态:</span><strong>--</strong></div>
+                                    <div class="bank-customer-kv"><span>证件类型:</span><strong>${escapeHtml(summary.idType || '--')}</strong></div>
+                                    <div class="bank-customer-kv"><span>证件号码:</span><strong>${escapeHtml(summary.idNo || '--')}</strong></div>
+                                    <label class="sidebar-check-row"><input type="checkbox" ${proxyChecked ? 'checked' : ''} disabled><span>代理人信息</span></label>
+                                </div>
+                                <div class="bank-customer-photo-wrap">
+                                    <img src="/images/customer-avatar.png" alt="客户头像">
+                                    <button type="button" class="counter-mini-btn wide bank-side-photo-btn">实名核验</button>
+                                </div>
+                            </div>
+                            <div class="bank-customer-tool-row">
+                                <button type="button" class="counter-mini-btn">联网核查</button>
+                                <button type="button" class="counter-mini-btn">辅助验证</button>
+                                <button type="button" class="counter-mini-btn">360视图</button>
+                            </div>
+                        </section>
+                        <section class="sidebar-panel sidebar-panel-block bank-sidebar-detail-panel">
+                            <div class="panel-caption">凭证信息</div>
+                            <div class="bank-sidebar-select-row">
+                                <span>凭证信息:</span>
+                                <select disabled>
+                                    <option>${escapeHtml(summary.mediumNo || summary.voucherNo || '--')}</option>
+                                </select>
+                            </div>
+                            <div class="bank-sidebar-detail-grid">
+                                <div><span>产品:</span><strong>${escapeHtml(summary.product || '--')}</strong></div>
+                                <div><span>币种:</span><strong>${escapeHtml(summary.currency || '--')}</strong></div>
+                                <div><span>开户机构:</span><strong>${escapeHtml(summary.openBranch || '--')}</strong></div>
+                                <div><span>开户日期:</span><strong>${escapeHtml(summary.openDate || '--')}</strong></div>
+                            </div>
+                            <div class="bank-sidebar-more-row">
+                                <button type="button" class="counter-mini-btn">更多</button>
+                            </div>
+                        </section>
+                        <section class="sidebar-panel sidebar-panel-block bank-sidebar-sign-panel">
+                            <div class="sidebar-double-caption"><span>签约信息</span><span>综合签约</span></div>
+                            <div class="bank-sign-grid">
+                                <label><input type="checkbox" disabled><span>电话银行</span></label>
+                                <label><input type="checkbox" disabled><span>短信通</span></label>
+                                <label><input type="checkbox" disabled><span>有卡自助转账</span></label>
+                                <label><input type="checkbox" disabled><span>智e通</span></label>
+                            </div>
+                            <div class="bank-sidebar-sign-action">
+                                <button type="button" class="counter-mini-btn">签约详情</button>
+                            </div>
+                        </section>
+                    </div>
+                `;
+            }
+
+            // 无客户时：0055 显示库箱提示，其余显示默认排队面板
             if (activeTab && activeTab.code === '0055') {
                 return `
                     <div class="sidebar-mode sidebar-mode-default">
@@ -614,131 +707,71 @@
                 `;
             }
 
-            // 查找任意已带出客户的交易标签（不依赖 activeTab）
-            const customerTab = findCustomerLoadedTab();
-
-            if (!customerTab) {
-                return `
-                    <div class="sidebar-mode sidebar-mode-default">
-                        <section class="sidebar-panel queue-panel sidebar-panel-block bank-default-queue-panel">
-                            <div class="queue-panel-main">
-                                <div class="queue-metrics bank-queue-metrics">
-                                    <div><span>排队号:</span><strong>--</strong></div>
-                                    <div><span>等待人数:</span><strong>3</strong></div>
-                                    <div><span>窗口号:</span><strong>${escapeHtml(getDisplayTellerCode(state.teller?.tellerCode || '1'))}</strong></div>
-                                    <div><span>状态:</span><strong>受理中</strong></div>
-                                </div>
-                                <div class="queue-primary-actions bank-main-actions">
-                                    <button type="button" class="counter-mini-btn wide">签到</button>
-                                    <button type="button" class="counter-mini-btn wide">暂停</button>
-                                    <button type="button" class="counter-mini-btn wide">评价</button>
-                                </div>
-                            </div>
-                            <div class="queue-side-actions bank-side-actions">
-                                <button type="button" class="counter-mini-btn">顺呼</button>
-                                <button type="button" class="counter-mini-btn">重呼</button>
-                                <button type="button" class="counter-mini-btn compact-side-btn">呼叫大堂</button>
-                                <button type="button" class="counter-mini-btn compact-side-btn">呼叫主管</button>
-                            </div>
-                        </section>
-                        <section class="sidebar-panel info-panel sidebar-panel-block">
-                            <div class="panel-caption">客户摘要信息</div>
-                            <div class="sidebar-placeholder-body bank-placeholder-body">
-                                <div>排队号:</div>
-                                <div>姓名:</div>
-                                <div>证件类型:</div>
-                                <div>证件号码:</div>
-                                <div>等待时间:</div>
-                            </div>
-                        </section>
-                        <section class="sidebar-panel info-panel filler-panel sidebar-panel-block">
-                            <div class="panel-caption">填单信息</div>
-                            <div class="sidebar-note-body bank-sidebar-note-body"></div>
-                        </section>
-                    </div>
-                `;
-            }
-
-            // 用 customerTab 的数据渲染客户信息区（切换到0055/3900时仍然保留）
-            const summary = buildSidebarCustomerSummary(customerTab);
-            const proxyChecked = customerTab.form.proxyFlag === 'Y-是' || hasProxyFilled(customerTab.form.proxy);
             return `
-                <div class="sidebar-mode sidebar-mode-customer bank-sidebar-customer-mode">
-                    <section class="sidebar-panel sidebar-panel-block bank-customer-info-panel">
-                        <div class="panel-caption">客户信息区</div>
-                        <div class="bank-customer-profile-card">
-                            <div class="bank-customer-profile-main">
-                                <div class="bank-customer-kv"><span>客户名称:</span><strong>${escapeHtml(summary.name || '--')}</strong></div>
-                                <div class="bank-customer-kv"><span>关键手机号:</span><strong>${escapeHtml(summary.mobile || '--')}</strong></div>
-                                <div class="bank-customer-kv"><span>核验时间:</span><strong>1</strong></div>
-                                <div class="bank-customer-kv"><span>实名状态:</span><strong>--</strong></div>
-                                <div class="bank-customer-kv"><span>证件类型:</span><strong>${escapeHtml(summary.idType || '--')}</strong></div>
-                                <div class="bank-customer-kv"><span>证件号码:</span><strong>${escapeHtml(summary.idNo || '--')}</strong></div>
-                                <label class="sidebar-check-row"><input type="checkbox" ${proxyChecked ? 'checked' : ''} disabled><span>代理人信息</span></label>
+                <div class="sidebar-mode sidebar-mode-default">
+                    <section class="sidebar-panel queue-panel sidebar-panel-block bank-default-queue-panel">
+                        <div class="queue-panel-main">
+                            <div class="queue-metrics bank-queue-metrics">
+                                <div><span>排队号:</span><strong>--</strong></div>
+                                <div><span>等待人数:</span><strong>3</strong></div>
+                                <div><span>窗口号:</span><strong>${escapeHtml(getDisplayTellerCode(state.teller?.tellerCode || '1'))}</strong></div>
+                                <div><span>状态:</span><strong>受理中</strong></div>
                             </div>
-                            <div class="bank-customer-photo-wrap">
-                                <img src="/images/customer-avatar.png" alt="客户头像">
-                                <button type="button" class="counter-mini-btn wide bank-side-photo-btn">实名核验</button>
+                            <div class="queue-primary-actions bank-main-actions">
+                                <button type="button" class="counter-mini-btn wide">签到</button>
+                                <button type="button" class="counter-mini-btn wide">暂停</button>
+                                <button type="button" class="counter-mini-btn wide">评价</button>
                             </div>
                         </div>
-                        <div class="bank-customer-tool-row">
-                            <button type="button" class="counter-mini-btn">联网核查</button>
-                            <button type="button" class="counter-mini-btn">辅助验证</button>
-                            <button type="button" class="counter-mini-btn">360视图</button>
+                        <div class="queue-side-actions bank-side-actions">
+                            <button type="button" class="counter-mini-btn">顺呼</button>
+                            <button type="button" class="counter-mini-btn">重呼</button>
+                            <button type="button" class="counter-mini-btn compact-side-btn">呼叫大堂</button>
+                            <button type="button" class="counter-mini-btn compact-side-btn">呼叫主管</button>
                         </div>
                     </section>
-                    <section class="sidebar-panel sidebar-panel-block bank-sidebar-detail-panel">
-                        <div class="panel-caption">凭证信息</div>
-                        <div class="bank-sidebar-select-row">
-                            <span>凭证信息:</span>
-                            <select disabled>
-                                <option>${escapeHtml(summary.mediumNo || summary.voucherNo || '--')}</option>
-                            </select>
-                        </div>
-                        <div class="bank-sidebar-detail-grid">
-                            <div><span>产品:</span><strong>${escapeHtml(summary.product || '--')}</strong></div>
-                            <div><span>币种:</span><strong>${escapeHtml(summary.currency || '--')}</strong></div>
-                            <div><span>开户机构:</span><strong>${escapeHtml(summary.openBranch || '--')}</strong></div>
-                            <div><span>开户日期:</span><strong>${escapeHtml(summary.openDate || '--')}</strong></div>
-                        </div>
-                        <div class="bank-sidebar-more-row">
-                            <button type="button" class="counter-mini-btn">更多</button>
+                    <section class="sidebar-panel info-panel sidebar-panel-block">
+                        <div class="panel-caption">客户摘要信息</div>
+                        <div class="sidebar-placeholder-body bank-placeholder-body">
+                            <div>排队号:</div>
+                            <div>姓名:</div>
+                            <div>证件类型:</div>
+                            <div>证件号码:</div>
+                            <div>等待时间:</div>
                         </div>
                     </section>
-                    <section class="sidebar-panel sidebar-panel-block bank-sidebar-sign-panel">
-                        <div class="sidebar-double-caption"><span>签约信息</span><span>综合签约</span></div>
-                        <div class="bank-sign-grid">
-                            <label><input type="checkbox" disabled><span>电话银行</span></label>
-                            <label><input type="checkbox" disabled><span>短信通</span></label>
-                            <label><input type="checkbox" disabled><span>有卡自助转账</span></label>
-                            <label><input type="checkbox" disabled><span>智e通</span></label>
-                        </div>
-                        <div class="bank-sidebar-sign-action">
-                            <button type="button" class="counter-mini-btn">签约详情</button>
-                        </div>
+                    <section class="sidebar-panel info-panel filler-panel sidebar-panel-block">
+                        <div class="panel-caption">填单信息</div>
+                        <div class="sidebar-note-body bank-sidebar-note-body"></div>
                     </section>
                 </div>
             `;
         }
 
 
+
         function buildSidebarCustomerSummary(tab) {
-            const customer = state.customerState.customer || {};
-            const firstMedia = (customer.mediaDetails || [])[0] || {};
-            const fallbackMediumNo = tab.form.mediumNo || tab.form.accountNo || tab.form.cardNo || '';
+            // 以标签表单数据为准，不跟随浮动卡切换而变化
+            const form = tab.form;
+            const firstMedia = (state.customerState.customer?.mediaDetails || [])
+                    .find(m => m.mediumNo === (form.mediumNo || form.accountNo) ||
+                        m.customerAccountNo === form.accountNo) ||
+                (state.customerState.customer?.mediaDetails || [])[0] || {};
+            const fallbackMediumNo = form.mediumNo || form.accountNo || form.cardNo || '';
             return {
-                name: tab.form.customerName || customer.customerName || '--',
-                mobile: customer.mobile || '--',
-                idType: tab.form.idType || customer.idType || '--',
-                idNo: tab.form.idNo || customer.idNo || '--',
+                name: form.customerName || '--',
+                mobile: tab.ui.customerMobile || '--',
+                idType: form.idType || form.certType || '--',
+                idNo: form.idNo || form.certNo || '--',
                 mediumNo: fallbackMediumNo || firstMedia.mediumNo || '--',
-                voucherNo: tab.form.voucherNo || firstMedia.voucherNo || '--',
+                voucherNo: form.voucherNo || firstMedia.voucherNo || '--',
                 product: firstMedia.mediumSubType || '个人一卡通',
-                currency: tab.form.currency || firstMedia.currency || '156 CNY 人民币',
+                currency: form.currency || firstMedia.currency || '156 CNY 人民币',
                 openBranch: '301000001',
                 openDate: firstMedia.openDate || '20161024'
             };
         }
+
 
         function renderBottomActions(code) {
             return `
@@ -753,6 +786,7 @@
             if (!['1061', '1062', '1651', '1657'].includes(tab.code)) {
                 return '';
             }
+            // 以已带出客户的标签为准（不跟随浮动卡）
             const customerTab = findCustomerLoadedTab() || tab;
             const cardAccountNo = resolveCardAccountNo(customerTab);
             return `
@@ -782,6 +816,7 @@
                 </aside>
             `;
         }
+
 
 
         function renderTradeBody(tab) {
@@ -1781,9 +1816,15 @@
             }
             if (node.dataset.navType === 'medium-trigger') {
                 event.preventDefault();
+                // 客户已带出时，回车直接推进到下一字段，不重新打开弹窗
+                if (tab.ui.customerLoaded) {
+                    focusNextNode(node);
+                    return;
+                }
                 openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 return;
             }
+
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
                 event.preventDefault();
                 focusField('accountNo');
@@ -2100,32 +2141,22 @@
         }
 
         function openMediumDialog(tab, mode) {
-            // 如果另一个交易标签已带出客户，拦截
-            const loadedTab = findCustomerLoadedTab();
-            if (loadedTab && loadedTab.id !== tab.id) {
-                tab.ui.systemAlert = '请结束当前交易！';
-                renderTabs();
-                return;
-            }
             tab.ui.mediumDialogOpen = true;
             tab.ui.mediumDialogMode = mode;
             tab.ui.mediumDialogStep = 'choose-method';
-            tab.ui.mediumDialogInputMethod = '';  // 不预选，焦点在第0个按钮
-
+            tab.ui.mediumDialogInputMethod = '';   // 不预选，焦点落在第0个按钮
             tab.ui.mediumDialogValue = mode === '1062'
                 ? (tab.code === '1657' ? (tab.form.accountNo || '') : (tab.form.mediumNo || ''))
                 : (tab.form.accountNo || '');
             tab.ui.mediumDialogError = '';
             renderTabs();
             requestAnimationFrame(() => {
-                if (directInputFor1657) {
-                    focusField('dialog.medium');
-                    return;
-                }
+                // 焦点始终设到第一个方法按钮
                 const firstMethodButton = tradeStage.querySelector('[data-button-group="medium-method"][data-button-index="0"]');
                 firstMethodButton?.focus();
             });
         }
+
 
         function closeMediumDialog(tab) {
             tab.ui.mediumDialogOpen = false;
@@ -2184,19 +2215,33 @@
                 renderTabs();
                 return;
             }
+            // 检查是否与已带出客户冲突（不同客户拦截）
+            const loadedTab = findCustomerLoadedTab();
+            if (loadedTab && loadedTab.id !== tab.id) {
+                const loadedIdNo = String(loadedTab.form.idNo || loadedTab.form.certNo || '').trim();
+                const newIdNo = String(customer.idNo || '').trim();
+                if (loadedIdNo && newIdNo && loadedIdNo !== newIdNo) {
+                    tab.ui.mediumDialogOpen = false;
+                    tab.ui.mediumDialogStep = 'choose-method';
+                    tab.ui.systemAlert = '请结束当前客户！';
+                    renderTabs();
+                    return;
+                }
+            }
             hydrateFormFromResolvedMedium(tab, customer, matched);
             if (tab.code === '1061') {
                 hydrate1061FormFromResolvedMedium(tab, customer, matched);
-                tab.ui.nextFocusField = 'amount';  // 停在金额字段，回车继续
+                // 账号确认后焦点停在账号字段（回车可继续往下，不再重新打开弹窗）
+                tab.ui.nextFocusField = 'accountNo';
             } else {
                 tab.ui.nextFocusField = 'password';
             }
-
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
             tab.ui.mediumDialogStep = 'choose-method';
             renderTabs();
         }
+
 
         function hydrate1061FormFromResolvedMedium(tab, customer, medium) {
             const preservedAmount = fallbackIfEmpty(tab.form.amount, '');
@@ -2225,10 +2270,12 @@
                 ledgerFlag: '0-元',
                 proxyFlag: 'N-否'
             });
+            tab.ui.customerMobile = customer.mobile || '';
             tab.ui.customerLoaded = true;
         }
 
         function hydrateFormFromResolvedMedium(tab, customer, medium) {
+
 
             Object.assign(tab.form, {
                 accountNo: medium.customerAccountNo || '',
@@ -2252,8 +2299,10 @@
                 ledgerFlag: '0-无',
                 proxyFlag: 'N-否'
             });
+            tab.ui.customerMobile = customer.mobile || '';
             tab.ui.customerLoaded = true;
         }
+
 
         function attempt1657Lookup(tab) {
 
@@ -2840,16 +2889,17 @@
             return intent?.targetMediumNo || intent?.targetAccountNo || intent?.targetDescription || ordinaryCertificate?.mediumNo || '--';
         }
 
-        // 只返回卡介质账号；无卡客户返回 null
+        // 只返回卡介质账号，无卡客户返回 null（不显示存单账号）
         function resolveCardAccountNo(tab) {
             const mediaList = state.customerState.customer?.mediaDetails || [];
-            const cardMedia = mediaList.find(item =>
-                String(item.mediumType || '').includes('卡') ||
-                String(item.mediumNo || '').startsWith('62')
+            const cardMedia = mediaList.find(m =>
+                String(m.mediumType || '').includes('卡') ||
+                String(m.mediumNo || '').startsWith('62')
             );
             if (!cardMedia) return null;
             return tab.form.accountNo || tab.form.mediumNo || cardMedia.mediumNo || cardMedia.customerAccountNo || null;
         }
+
 
 
         function resolveAssistAccountNo(tab) {
