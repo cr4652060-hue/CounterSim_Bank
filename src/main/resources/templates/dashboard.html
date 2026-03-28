@@ -104,6 +104,14 @@
             activeTabId: null
         };
 
+        // 全局辅助：找到当前已带出客户的交易标签（1061/1062/1651/1657）
+        function findCustomerLoadedTab() {
+            return state.tabs.find(t =>
+                ['1061', '1062', '1651', '1657'].includes(t.code) && t.ui.customerLoaded
+            ) || null;
+        }
+
+
         function getDisplayTellerCode(rawCode) {
             const raw = String(rawCode ?? '').trim();
             if (!raw) {
@@ -522,7 +530,6 @@
                         <span class="trade-tab-code">${tab.code}</span>
                         <span>${tab.name}</span>
                     </button>
-                    <button type="button" class="trade-tab-close" aria-label="关闭 ${tab.name}">×</button>
                 </div>
             `).join('');
 
@@ -533,11 +540,8 @@
                     persistTabs();
                     renderTabs();
                 });
-                tabNode.querySelector('.trade-tab-close').addEventListener('click', event => {
-                    event.stopPropagation();
-                    closeTrade(tabId);
-                });
             });
+
 
             const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0];
             state.activeTabId = activeTab.id;
@@ -609,8 +613,11 @@
                     </div>
                 `;
             }
-            const supportsCustomerSidebar = activeTab && ['3900', '1062', '1657', '1061', '1651'].includes(activeTab.code);
-            if (!supportsCustomerSidebar || !activeTab.ui.customerLoaded) {
+
+            // 查找任意已带出客户的交易标签（不依赖 activeTab）
+            const customerTab = findCustomerLoadedTab();
+
+            if (!customerTab) {
                 return `
                     <div class="sidebar-mode sidebar-mode-default">
                         <section class="sidebar-panel queue-panel sidebar-panel-block bank-default-queue-panel">
@@ -651,8 +658,10 @@
                     </div>
                 `;
             }
-            const summary = buildSidebarCustomerSummary(activeTab);
-            const proxyChecked = activeTab.form.proxyFlag === 'Y-是' || hasProxyFilled(activeTab.form.proxy);
+
+            // 用 customerTab 的数据渲染客户信息区（切换到0055/3900时仍然保留）
+            const summary = buildSidebarCustomerSummary(customerTab);
+            const proxyChecked = customerTab.form.proxyFlag === 'Y-是' || hasProxyFilled(customerTab.form.proxy);
             return `
                 <div class="sidebar-mode sidebar-mode-customer bank-sidebar-customer-mode">
                     <section class="sidebar-panel sidebar-panel-block bank-customer-info-panel">
@@ -712,6 +721,7 @@
             `;
         }
 
+
         function buildSidebarCustomerSummary(tab) {
             const customer = state.customerState.customer || {};
             const firstMedia = (customer.mediaDetails || [])[0] || {};
@@ -743,13 +753,15 @@
             if (!['1061', '1062', '1651', '1657'].includes(tab.code)) {
                 return '';
             }
-            const assistAccountNo = resolveAssistAccountNo(tab);
+            const customerTab = findCustomerLoadedTab() || tab;
+            const cardAccountNo = resolveCardAccountNo(customerTab);
             return `
                 <aside class="trade-right-column bank-assist-column">
                     <section class="trade-right-block bank-assist-info-block">
-                       <div class="panel-caption">辅助信息</div>
+                        <div class="panel-caption">辅助信息</div>
+                        ${cardAccountNo ? `
                         <div class="bank-assist-text-list">
-                            <div>本次交易账号：${escapeHtml(assistAccountNo)}，已设置非柜面渠道基础限额如下：请关注是否正常</div>
+                            <div>本次交易账号：${escapeHtml(cardAccountNo)}，已设置非柜面渠道基础限额如下：请关注是否正常</div>
                             <div>单笔交易限额：5000.00</div>
                             <div>日累计支取限额：10000.00</div>
                             <div>日累计支取笔数：20.00</div>
@@ -757,6 +769,7 @@
                         </div>
                         <div class="bank-assist-scrollbar"></div>
                         <div class="bank-assist-inline-btn"><button type="button" class="counter-mini-btn">账户提醒</button></div>
+                        ` : ''}
                     </section>
                     <section class="trade-right-block bank-assist-counter-block">
                         <div class="panel-caption">交易数量：0</div>
@@ -769,6 +782,7 @@
                 </aside>
             `;
         }
+
 
         function renderTradeBody(tab) {
             if (['1061', '1062', '1651', '1657'].includes(tab.code) && tab.ui.submitStage === 'receipt-preview') {
@@ -1541,9 +1555,9 @@
                 ]
                 : [
                     { value: 'magstripe', label: '0-刷磁条卡/折' },
-                    { value: 'ic', label: '1-读IC卡' },
-                    { value: 'manual', label: '2-手工输入' }
+                    { value: 'ic', label: '1-读IC卡' }
                 ];
+
             const methodLabelMap = {
                 magstripe: '请刷磁条',
                 ic: '请插入介质并回车确认，模拟刷卡后带出客户。',
@@ -1785,16 +1799,27 @@
             if (node.dataset.field === 'idType' || node.dataset.field === 'verify.idType') {
                 event.preventDefault();
                 if (!String(node.value || '').trim()) {
-                    const firstOption = Array.from(node.options || []).find(option => String(option.value || '').trim());
+                    // 自动选首项
+                    const firstOption = Array.from(node.options || []).find(opt => String(opt.value || '').trim());
                     if (firstOption) {
                         node.value = firstOption.value;
                         setFormValue(tab.form, node.dataset.field, firstOption.value);
+                    } else {
+                        return; // 没有可选项则停留
                     }
                 }
                 const nextField = node.dataset.field === 'verify.idType' ? 'verify.idNo' : 'idNo';
+                // 聚焦证件号码，同时立即触发刷身份证弹窗
                 focusField(nextField);
+                requestAnimationFrame(() => {
+                    const idNode = tradeStage.querySelector(`[data-field="${nextField}"]`);
+                    if (idNode && idNode.dataset.navType === 'id-read' && !tab.ui.readingIdCard) {
+                        start3900IdRead(tab, nextField);
+                    }
+                });
                 return;
             }
+
             if (node.dataset.navType === 'id-read') {
                 event.preventDefault();
                 const typeField = node.dataset.field && node.dataset.field.startsWith('verify.') ? 'verify.idType' : 'idType';
@@ -1878,27 +1903,26 @@
                     }
                     return;
                 }
-                // ── 其他 SELECT：通用空值拦截 ──
+                // ── 其他 SELECT：空值自动选首项，留在当前字段 ──
                 if (!node.value && node.dataset.allowEmpty !== 'true') {
                     event.preventDefault();
-                    if (typeof node.showPicker === 'function') {
-                        node.showPicker();
-                        return;
+                    const firstOpt = Array.from(node.options || []).find(o => String(o.value || '').trim());
+                    if (firstOpt) {
+                        node.value = firstOpt.value;
+                        setFormValue(tab.form, node.dataset.field, firstOpt.value);
                     }
-                    tab.ui.inlineMessage = '当前下拉项尚未选择，不能直接回车跳过。';
-                    renderTabs();
-                    requestAnimationFrame(() => focusField(node.dataset.field));
-                    return;
+                    // 展示下拉（如浏览器支持）
+                    if (typeof node.showPicker === 'function') {
+                        try { node.showPicker(); } catch(e) {}
+                    }
+                    return; // 停留在当前字段等待再次回车
                 }
+
             }
 
             if (node.dataset.field === 'proxyFlag' && node.value === 'Y-是') {
                 event.preventDefault();
                 startProxy3900Link(tab);
-                return;
-            }
-            if (node.dataset.required === 'true' && !String(node.value || '').trim()) {
-                event.preventDefault();
                 return;
             }
             event.preventDefault();
@@ -2076,10 +2100,18 @@
         }
 
         function openMediumDialog(tab, mode) {
+            // 如果另一个交易标签已带出客户，拦截
+            const loadedTab = findCustomerLoadedTab();
+            if (loadedTab && loadedTab.id !== tab.id) {
+                tab.ui.systemAlert = '请结束当前交易！';
+                renderTabs();
+                return;
+            }
             tab.ui.mediumDialogOpen = true;
             tab.ui.mediumDialogMode = mode;
             tab.ui.mediumDialogStep = 'choose-method';
-            tab.ui.mediumDialogInputMethod = 'manual';
+            tab.ui.mediumDialogInputMethod = '';  // 不预选，焦点在第0个按钮
+
             tab.ui.mediumDialogValue = mode === '1062'
                 ? (tab.code === '1657' ? (tab.form.accountNo || '') : (tab.form.mediumNo || ''))
                 : (tab.form.accountNo || '');
@@ -2155,10 +2187,11 @@
             hydrateFormFromResolvedMedium(tab, customer, matched);
             if (tab.code === '1061') {
                 hydrate1061FormFromResolvedMedium(tab, customer, matched);
-                tab.ui.nextFocusField = 'feeMode';
+                tab.ui.nextFocusField = 'amount';  // 停在金额字段，回车继续
             } else {
                 tab.ui.nextFocusField = 'password';
             }
+
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
             tab.ui.mediumDialogStep = 'choose-method';
@@ -2329,7 +2362,7 @@
             const payload = {
                 tradeCode: tab.code,
                 amount: resolveSettlementAmount(tab),
-                customerAgreed: Boolean(tab.ui.customerAgreed)
+                customerAgreed: true
             };
             try {
                 const resp = await fetch('/api/inventory/settle', {
@@ -2337,16 +2370,12 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                const result = resp.ok ? await resp.json() : null;
-                if (result) {
-                    tab.ui.inlineMessage = `交易已入库，柜员现金余额：${formatMoney(result.currentCash)}`;
-                } else {
-                    tab.ui.inlineMessage = '交易已提交，但未获取到最新库箱数据。';
-                }
-            } catch (error) {
-                tab.ui.inlineMessage = '交易提交成功，但更新库箱数据失败，请稍后重试。';
+                if (resp.ok) await resp.json();
+            } catch (e) {
+                // 静默失败，不影响前端流程
             }
         }
+
 
         function openPasswordDialog(tab, field) {
             tab.ui.passwordDialogOpen = true;
@@ -2384,8 +2413,12 @@
                 target.authority = target.authority || '沂南县公安局';
                 target.validUntil = target.validUntil || '2032-02-18';
                 target.checkResult = target.checkResult || '00-身份证号码与姓名一致并存在照片';
-                tab.ui.customerLoaded = true;
+                // 3900 独立标签不影响全局客户状态（不更新左侧信息）
+                if (tab.code !== '3900') {
+                    tab.ui.customerLoaded = true;
+                }
                 tab.ui.readingIdCard = false;
+
                 tab.ui.readingIdCardTimer = null;
                 if (isVerifyOverlay) {
                     if (tab.form.proxyFlag === 'Y-是') {
@@ -2574,51 +2607,79 @@
                     return;
                 case 'start-submit-flow':
                     tab.ui.submitStage = 'confirm-wait';
+                    tab.ui.submitCountdown = 2;
                     renderTabs();
-                    return;
-                case 'customer-confirmed':
-                    tab.ui.customerAgreed = true;
-                    tab.ui.submitStage = 'success-popup';
-                    tab.ui.submitCountdown = 59;
-                    renderTabs();
-                    // 客户已确认后立即落库（含 1061/1062/1651/1657）
-                    if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
-                        settleTradeInventory(tab).finally(() => renderTabs());
-                    }
+                    (function() {
+                        const confirmTimer = window.setInterval(() => {
+                            if (tab.ui.submitStage !== 'confirm-wait') {
+                                window.clearInterval(confirmTimer);
+                                return;
+                            }
+                            tab.ui.submitCountdown = Math.max(0, (tab.ui.submitCountdown ?? 2) - 1);
+                            renderTabs();
+                            if (tab.ui.submitCountdown <= 0) {
+                                window.clearInterval(confirmTimer);
+                                tab.ui.customerAgreed = true;
+                                tab.ui.submitStage = 'success-popup';
+                                renderTabs();
+                            }
+                        }, 1000);
+                    })();
                     return;
                 case 'submit-success-confirm':
-
                     tab.ui.submitStage = 'sign-wait';
                     tab.ui.submitCountdown = 59;
                     renderTabs();
-                    const timer = window.setInterval(() => {
-                        if (tab.ui.submitStage !== 'sign-wait') {
-                            window.clearInterval(timer);
-                            return;
-                        }
-                        tab.ui.submitCountdown = Math.max(0, (tab.ui.submitCountdown || 59) - 1);
-                        renderTabs();
-                    }, 1000);
-                    window.setTimeout(() => {
-                        window.clearInterval(timer);
-                        tab.ui.submitStage = 'receipt-preview';
-                        renderTabs();
-                    }, 3000);
+                    (function() {
+                        const signTimer = window.setInterval(() => {
+                            if (tab.ui.submitStage !== 'sign-wait') {
+                                window.clearInterval(signTimer);
+                                return;
+                            }
+                            tab.ui.submitCountdown = Math.max(0, (tab.ui.submitCountdown || 59) - 1);
+                            renderTabs();
+                        }, 1000);
+                        window.setTimeout(() => {
+                            window.clearInterval(signTimer);
+                            if (tab.ui.submitStage === 'sign-wait') {
+                                tab.ui.submitStage = 'receipt-preview';
+                                renderTabs();
+                            }
+                        }, 3000);
+                    })();
                     return;
                 case 'finish-submit-flow':
-                    tab.ui.submitStage = '';
-                    tab.ui.customerAgreed = false;
-                    // 落库已在 customer-confirmed 时完成；inlineMessage 若已有落库结果则保留，否则显示默认提示
-                    if (!tab.ui.inlineMessage) {
-                        tab.ui.inlineMessage = '电子凭证预览已提交，当前为模拟流程。';
+                    // 落库
+                    if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
+                        settleTradeInventory(tab);
                     }
+                    tab.ui.submitStage = 'finish-success';
                     renderTabs();
                     return;
-
+                case 'finish-success-confirm': {
+                    tab.ui.submitStage = '';
+                    tab.ui.customerAgreed = false;
+                    tab.ui.customerLoaded = false;
+                    const remainingTradeTabs = state.tabs.filter(t =>
+                        ['1061', '1062', '1651', '1657'].includes(t.code) && t.id !== tab.id
+                    );
+                    closeTrade(tab.id);
+                    // 如果没有其余带客户的交易标签，侧边栏自动回默认（findCustomerLoadedTab返回null）
+                    return;
+                }
+                case 'open-sign-dialog':
+                    tab.ui.signDialogOpen = true;
+                    renderTabs();
+                    return;
+                case 'close-sign-dialog':
+                    tab.ui.signDialogOpen = false;
+                    renderTabs();
+                    return;
                 case 'cancel-submit-flow':
                     tab.ui.submitStage = '';
                     renderTabs();
                     return;
+
                 case 'close-medium-dialog':
                     closeMediumDialog(tab);
                     return;
@@ -2778,6 +2839,18 @@
             }
             return intent?.targetMediumNo || intent?.targetAccountNo || intent?.targetDescription || ordinaryCertificate?.mediumNo || '--';
         }
+
+        // 只返回卡介质账号；无卡客户返回 null
+        function resolveCardAccountNo(tab) {
+            const mediaList = state.customerState.customer?.mediaDetails || [];
+            const cardMedia = mediaList.find(item =>
+                String(item.mediumType || '').includes('卡') ||
+                String(item.mediumNo || '').startsWith('62')
+            );
+            if (!cardMedia) return null;
+            return tab.form.accountNo || tab.form.mediumNo || cardMedia.mediumNo || cardMedia.customerAccountNo || null;
+        }
+
 
         function resolveAssistAccountNo(tab) {
             const currentMedia = state.customerState.customer?.mediaDetails || [];
@@ -2954,16 +3027,19 @@
                 </div>
 
                 <div class="trade-action-row bank-action-row receipt-preview-actions">
-                    <button type="button" class="counter-form-btn" disabled data-enter-target="true">签名</button>
+                                      <button type="button" class="counter-form-btn" data-tab-action="open-sign-dialog" data-enter-target="true">签名</button>
                     <button type="button" class="counter-form-btn" disabled data-enter-target="true">附件管理</button>
                     <button type="button" class="counter-form-btn" data-tab-action="finish-submit-flow" data-enter-target="true">提交</button>
                     <button type="button" class="counter-form-btn" data-tab-action="cancel-submit-flow" data-enter-target="true">取消</button>
                 </div>
             </div>
-            ${renderRightAssistPanel(tab)}
+                        ${renderRightAssistPanel(tab)}
+            ${renderSignDialog(tab)}
+            ${renderCommonSubmitOverlay(tab)}
         </div>
     `;
         }
+
 
         let receiptPreviewResizeBound = false;
 
@@ -3003,6 +3079,24 @@
             scaleBox.style.height = `${paper.offsetHeight * scale}px`;
         }
 
+        function renderSignDialog(tab) {
+            if (!tab.ui.signDialogOpen) return '';
+            return `
+                <div class="trade-overlay">
+                    <div class="bank-dialog submit-flow-dialog wide-dialog">
+                        <div class="bank-dialog-title">客户签名确认</div>
+                        <div class="submit-flow-row submit-flow-message-only">
+                            <span>请客户在签名板上签字确认……</span>
+                        </div>
+                        <div class="trade-action-row bank-action-row dialog-actions dialog-align-end">
+                            <button type="button" class="counter-form-btn" data-tab-action="close-sign-dialog" data-enter-target="true">完成</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+
         function renderSystemAlertDialog(tab) {
             if (!tab.ui.systemAlert) {
                 return '';
@@ -3021,7 +3115,7 @@
         }
 
         function renderCommonSubmitOverlay(tab) {
-            if (!['confirm-wait','success-popup','sign-wait'].includes(tab.ui.submitStage)) {
+            if (!['confirm-wait', 'success-popup', 'sign-wait', 'finish-success'].includes(tab.ui.submitStage)) {
                 return '';
             }
             if (tab.ui.submitStage === 'confirm-wait') {
@@ -3029,10 +3123,7 @@
                     <div class="trade-overlay">
                         <div class="bank-dialog submit-flow-dialog wide-dialog">
                             <div class="bank-dialog-title">等待客户确认交易信息</div>
-                            <div class="submit-flow-row"><span>客户正在确认交易信息，请稍后……</span><strong>倒计时：${tab.ui.submitCountdown || 59}</strong></div>
-                            <div class="trade-action-row bank-action-row dialog-actions single-center-actions">
-                                <button type="button" class="counter-form-btn" data-tab-action="customer-confirmed" data-enter-target="true">客户已确认</button>
-                            </div>
+                            <div class="submit-flow-row"><span>客户正在确认交易信息，请稍后……</span><strong>倒计时：${tab.ui.submitCountdown ?? 2}</strong></div>
                         </div>
                     </div>
                 `;
@@ -3050,6 +3141,20 @@
                     </div>
                 `;
             }
+            if (tab.ui.submitStage === 'finish-success') {
+                return `
+                    <div class="trade-overlay">
+                        <div class="bank-dialog submit-flow-dialog wide-dialog">
+                            <div class="bank-dialog-title">提示</div>
+                            <div class="submit-flow-row submit-flow-message-only"><span>电子凭证提交成功！</span></div>
+                            <div class="trade-action-row bank-action-row dialog-actions dialog-align-end">
+                                <button type="button" class="counter-form-btn" data-tab-action="finish-success-confirm" data-enter-target="true">确定</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // sign-wait
             return `
                 <div class="trade-overlay">
                     <div class="bank-dialog submit-flow-dialog sign-wait-dialog">
@@ -3062,6 +3167,7 @@
                 </div>
             `;
         }
+
         function bindCardDrag() {
 
             let isDragging = false;
