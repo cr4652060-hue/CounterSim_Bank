@@ -1856,6 +1856,29 @@
                 }
             }
             if (node.tagName === 'SELECT') {
+                // ── 业务种类特殊处理：必须在通用空值拦截之前 ──
+                if (node.dataset.field === 'businessType' || node.dataset.field === 'verify.businessType') {
+                    event.preventDefault();
+                    if (!String(node.value || '').trim()) {
+                        // 第一次 Enter（空）：自动选第一个非空选项，停留在当前字段等待再次 Enter
+                        const firstOption = Array.from(node.options || []).find(opt => String(opt.value || '').trim());
+                        if (firstOption) {
+                            node.value = firstOption.value;
+                            setFormValue(tab.form, node.dataset.field, firstOption.value);
+                            tab.ui.businessTypeArmed = true;
+                        }
+                        return; // 停留在 businessType，等待用户再次 Enter
+                    }
+                    // 第二次 Enter（已有值）：跳到提交按钮
+                    const submitButton = tradeStage.querySelector('[data-tab-action="3900-submit-verify"], [data-tab-action="submit-verify"]');
+                    if (submitButton) {
+                        submitButton.focus();
+                    } else {
+                        focusNextNode(node);
+                    }
+                    return;
+                }
+                // ── 其他 SELECT：通用空值拦截 ──
                 if (!node.value && node.dataset.allowEmpty !== 'true') {
                     event.preventDefault();
                     if (typeof node.showPicker === 'function') {
@@ -1867,28 +1890,8 @@
                     requestAnimationFrame(() => focusField(node.dataset.field));
                     return;
                 }
-                if (node.dataset.field === 'businessType' && !String(node.value || '').trim()) {
-                    const firstOption = Array.from(node.options || []).find(option => String(option.value || '').trim());
-                    if (firstOption) {
-                        node.value = firstOption.value;
-                        setFormValue(tab.form, node.dataset.field, firstOption.value);
-                    } else {
-                        event.preventDefault();
-                        focusField('businessType');
-                        return;
-                    }
-                }
-                if ((node.dataset.field === 'businessType' || node.dataset.field === 'verify.businessType') && String(node.value || '').trim()) {
-                    event.preventDefault();
-                    const submitButton = tradeStage.querySelector('[data-tab-action="3900-submit-verify"], [data-tab-action="submit-verify"]');
-                    if (submitButton) {
-                        submitButton.focus();
-                    } else {
-                        focusNextNode(node);
-                    }
-                    return;
-                }
             }
+
             if (node.dataset.field === 'proxyFlag' && node.value === 'Y-是') {
                 event.preventDefault();
                 startProxy3900Link(tab);
@@ -2563,8 +2566,13 @@
                     tab.ui.submitStage = 'success-popup';
                     tab.ui.submitCountdown = 59;
                     renderTabs();
+                    // 客户已确认后立即落库（含 1061/1062/1651/1657）
+                    if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
+                        settleTradeInventory(tab).finally(() => renderTabs());
+                    }
                     return;
                 case 'submit-success-confirm':
+
                     tab.ui.submitStage = 'sign-wait';
                     tab.ui.submitCountdown = 59;
                     renderTabs();
@@ -2584,18 +2592,14 @@
                     return;
                 case 'finish-submit-flow':
                     tab.ui.submitStage = '';
-                    if (['1061', '1062', '1651', '1657'].includes(tab.code) && tab.ui.customerAgreed) {
-                        settleTradeInventory(tab)
-                            .finally(() => {
-                                tab.ui.customerAgreed = false;
-                                renderTabs();
-                            });
-                        return;
-                    }
-                    tab.ui.inlineMessage = '电子凭证预览已提交，当前为模拟流程。';
                     tab.ui.customerAgreed = false;
+                    // 落库已在 customer-confirmed 时完成；inlineMessage 若已有落库结果则保留，否则显示默认提示
+                    if (!tab.ui.inlineMessage) {
+                        tab.ui.inlineMessage = '电子凭证预览已提交，当前为模拟流程。';
+                    }
                     renderTabs();
                     return;
+
                 case 'cancel-submit-flow':
                     tab.ui.submitStage = '';
                     renderTabs();
