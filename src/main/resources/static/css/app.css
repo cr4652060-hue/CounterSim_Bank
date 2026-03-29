@@ -331,6 +331,12 @@ textarea { resize: vertical; min-height: 98px; }
     border-color: #7ba8d4;
     color: #24507e;
 }
+.counter-form-btn:focus,
+.counter-form-btn:focus-visible,
+.counter-mini-btn:focus,
+.counter-mini-btn:focus-visible {
+    box-shadow: 0 0 0 2px #2f6fb5, inset 0 0 0 1px rgba(255,255,255,.45);
+}
 .panel-caption {
     height: 20px;
     background: #6a9bd1;
