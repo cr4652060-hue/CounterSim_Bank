@@ -1536,7 +1536,7 @@
                         <div class="verify-result-footer">
                             <label class="verify-result-select"><span>核查结果</span>${select(`${fieldPrefix}checkResult`, verify.checkResult, ['00-身份证号码与姓名一致并存在照片'])}</label>
                             <div class="trade-action-row bank-action-row dialog-actions verify-result-actions">
-                                <button type="button" class="counter-form-btn" data-tab-action="verify-modify" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="0">修改</button>
+                                <button type="button" class="counter-form-btn" data-tab-action="verify-modify" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="0" autofocus>修改</button>
                                 <button type="button" class="counter-form-btn" data-tab-action="verify-maintain-avatar" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="1">维护客户头像</button>
                                 <button type="button" class="counter-form-btn" data-tab-action="verify-print" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="2">打印</button>
                                 <button type="button" class="counter-form-btn" data-tab-action="${actionPrefix}close-verify" data-enter-target="true" data-button-group="verify-result-actions" data-button-index="3">关闭</button>
@@ -1816,14 +1816,18 @@
             }
             if (node.dataset.navType === 'medium-trigger') {
                 event.preventDefault();
-                // 客户已带出时，回车直接推进到下一字段，不重新打开弹窗
                 if (tab.ui.customerLoaded) {
-                    focusNextNode(node);
-                    return;
+                    if (tab.code === '1062') {
+                        openPasswordDialog(tab, 'password');
+                    } else {
+                        focusNextNode(node);
+                    }
+                } else {
+                    openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 }
-                openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 return;
             }
+
 
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
                 event.preventDefault();
@@ -1839,25 +1843,27 @@
             }
             if (node.dataset.field === 'idType' || node.dataset.field === 'verify.idType') {
                 event.preventDefault();
-                if (!String(node.value || '').trim()) {
-                    // 自动选首项
+                const currentValue = String(node.value || '').trim();
+                if (!currentValue) {
+                    // 第1次回车：空 → 自动选首个非空选项，停留
                     const firstOption = Array.from(node.options || []).find(opt => String(opt.value || '').trim());
                     if (firstOption) {
                         node.value = firstOption.value;
                         setFormValue(tab.form, node.dataset.field, firstOption.value);
-                    } else {
-                        return; // 没有可选项则停留
                     }
+                    tab.ui.idTypeStep = 1;
+                    return;
                 }
+                const step = tab.ui.idTypeStep || 0;
+                if (step < 2) {
+                    // 第2次回车：有值但未确认 → 停留
+                    tab.ui.idTypeStep = 2;
+                    return;
+                }
+                // 第3次回车：前进到证件号码，focusField自动触发刷身份证弹窗
+                tab.ui.idTypeStep = 0;
                 const nextField = node.dataset.field === 'verify.idType' ? 'verify.idNo' : 'idNo';
-                // 聚焦证件号码，同时立即触发刷身份证弹窗
                 focusField(nextField);
-                requestAnimationFrame(() => {
-                    const idNode = tradeStage.querySelector(`[data-field="${nextField}"]`);
-                    if (idNode && idNode.dataset.navType === 'id-read' && !tab.ui.readingIdCard) {
-                        start3900IdRead(tab, nextField);
-                    }
-                });
                 return;
             }
 
@@ -2032,11 +2038,12 @@
                 return false;
             }
             if (node.dataset.navType === 'medium-trigger') {
-                if (!tab.ui.mediumDialogOpen) {
+                if (!tab.ui.mediumDialogOpen && !tab.ui.customerLoaded) {
                     openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 }
                 return true;
             }
+
             if (node.dataset.navType === '1651-id-read') {
                 if (!tab.form.certType) {
                     return true;
@@ -2163,8 +2170,14 @@
             tab.ui.mediumDialogError = '';
             tab.ui.mediumDialogStep = 'choose-method';
             tab.ui.mediumDialogInputMethod = '';
+            if (tab.code === '1062') {
+                tab.ui.nextFocusField = 'mediumNo';
+            } else if (tab.code === '1061') {
+                tab.ui.nextFocusField = 'accountNo';
+            }
             renderTabs();
         }
+
 
         function chooseMediumMethod(tab, method) {
             if (!method) {
