@@ -101,16 +101,19 @@
             teller: bootstrap.teller || {},
             customerState: normalizeCustomerState(bootstrap.counterCustomerState),
             tabs: [],
-            activeTabId: null
+            activeTabId: null,
+            lastCustomerInfo: null
         };
 
-        // 全局辅助：找到当前已带出客户的交易标签（1061/1062/1651/1657）
-        function findCustomerLoadedTab() {
-            return state.tabs.find(t =>
-                ['1061', '1062', '1651', '1657'].includes(t.code) && t.ui.customerLoaded
-            ) || null;
+        function saveLastCustomerInfo(tab) {
+            if (!tab || !tab.ui.customerLoaded) return;
+            state.lastCustomerInfo = {
+                name: tab.form.customerName || '',
+                idType: tab.form.idType || tab.form.certType || '',
+                idNo: tab.form.idNo || tab.form.certNo || '',
+                mediumNo: tab.form.mediumNo || tab.form.accountNo || tab.form.cardNo || ''
+            };
         }
-
 
         function getDisplayTellerCode(rawCode) {
             const raw = String(rawCode ?? '').trim();
@@ -156,12 +159,7 @@
             });
         }
 
-        function normalizeCustomerState(raw) {
-            if (!raw || !raw.serviceStatus) {
-                return { serviceStatus: 'NONE', customer: null, intent: null };
-            }
-            return raw;
-        }
+
         function normalizeCustomerState(raw) {
             if (!raw || !raw.serviceStatus) {
                 return { serviceStatus: 'NONE', customer: null, intent: null };
@@ -533,6 +531,7 @@
             if (index < 0) {
                 return;
             }
+            saveLastCustomerInfo(state.tabs[index]);
             const wasActive = state.activeTabId === tabId;
             state.tabs.splice(index, 1);
             if (wasActive) {
@@ -545,8 +544,15 @@
         function renderTabs() {
             if (!state.tabs.length) {
                 tabStrip.innerHTML = '<div class="tab-strip-empty bank-tab-empty"></div>';
-                tradeStage.innerHTML = '<div class="workspace-blank"></div>';
-                leftSidebarHost.innerHTML = renderSidebarPanel(null);
+                if (state.lastCustomerInfo) {
+                    leftSidebarHost.innerHTML = renderPersistedSidebar(state.lastCustomerInfo);
+                    tradeStage.innerHTML = renderPersistedWorkspace(state.lastCustomerInfo);
+                    tradeStage.querySelector('[data-tab-action="exit-customer"]')
+                        ?.addEventListener('click', () => { state.lastCustomerInfo = null; renderTabs(); });
+                } else {
+                    tradeStage.innerHTML = '<div class="workspace-blank"></div>';
+                    leftSidebarHost.innerHTML = renderSidebarPanel(null);
+                }
                 return;
             }
 
@@ -817,7 +823,59 @@
             `;
         }
 
+        function renderPersistedSidebar(info) {
+            return `
+                <div class="sidebar-mode sidebar-mode-customer bank-sidebar-customer-mode">
+                    <section class="sidebar-panel sidebar-panel-block bank-customer-info-panel">
+                        <div class="panel-caption">客户信息区（交易已完成）</div>
+                        <div class="bank-customer-profile-card">
+                            <div class="bank-customer-profile-main">
+                                <div class="bank-customer-kv"><span>客户名称:</span><strong>${escapeHtml(info.name || '--')}</strong></div>
+                                <div class="bank-customer-kv"><span>证件类型:</span><strong>${escapeHtml(info.idType || '--')}</strong></div>
+                                <div class="bank-customer-kv"><span>证件号码:</span><strong>${escapeHtml(info.idNo || '--')}</strong></div>
+                                <div class="bank-customer-kv"><span>账（卡）号:</span><strong>${escapeHtml(info.mediumNo || '--')}</strong></div>
+                            </div>
+                            <div class="bank-customer-photo-wrap">
+                                <img src="/images/customer-avatar.png" alt="客户头像">
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            `;
+        }
 
+        function renderPersistedWorkspace(info) {
+            return `
+                <div class="trade-pane bank-trade-pane">
+                    <div class="sim-counter-window">
+                        <div class="sim-window-titlebar">交易已完成 — 请退出当前客户</div>
+                        <div class="sim-window-body trade-scroll-body">
+                            <div class="trade-page trade-page-bankform trade-page-three-col">
+                                <div class="trade-main-panel bank-form-main trade-center-column">
+                                    <div style="padding:32px 24px;color:#666;">当前客户交易已全部完成。如需办理新交易，请先点击右侧"退出交易"。</div>
+                                </div>
+                                <aside class="trade-right-column bank-assist-column">
+                                    <section class="trade-right-block bank-assist-info-block">
+                                        <div class="panel-caption">辅助信息</div>
+                                        <div class="bank-assist-text-list">
+                                            <div>客户：${escapeHtml(info.name || '--')}</div>
+                                            <div>账（卡）号：${escapeHtml(info.mediumNo || '--')}</div>
+                                            <div>交易已完成，等待退出。</div>
+                                        </div>
+                                    </section>
+                                    <section class="trade-right-block bank-assist-counter-block">
+                                        <div class="panel-caption">交易完成</div>
+                                    </section>
+                                    <div class="bank-assist-bottom-actions">
+                                        <button type="button" class="counter-form-btn" data-tab-action="exit-customer">退出交易</button>
+                                    </div>
+                                </aside>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
         function renderTradeBody(tab) {
             if (['1061', '1062', '1651', '1657'].includes(tab.code) && tab.ui.submitStage === 'receipt-preview') {
@@ -975,14 +1033,14 @@
                     <div class="trade-main-panel bank-form-main trade-3900-shell">
                         ${renderInlineMessage(tab)}
                         <div class="trade-form-grid form-grid-2col bank-form-grid fixed-layout-grid form-3900-grid">
-                            ${field('查询类型', select('queryType', queryType, ['1-现金/现钞', '2-凭证'], { yellow: true, required: true, navType: 'select', autofocus: true }))}
-                            ${isVoucher ? field('凭证级别', select('voucherLevel', f.voucherLevel || '0-所有凭证', ['0-所有凭证'], { yellow: true, navType: 'select' })) : field('柜员号', input('tellerNo', tellerNo, { yellow: true, navType: 'input' }))}
-                            ${field('柜员号', input('targetAccountNo', f.targetAccountNo || tellerNo.slice(-6), { yellow: true, navType: 'input' }))}
-                            ${isVoucher ? field('柜员姓名', input('tellerName', f.tellerName || tellerName, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true })) : field('库箱号', input('targetVoucherNo', f.targetVoucherNo || '301000001106', { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
+                             ${field('查询类型', select('queryType', queryType, ['1-现金/现钞', '2-凭证'], { yellow: true, required: true, navType: 'select', autofocus: true, buttonGroup: 'q0055-nav', buttonIndex: 0 }))}
+                            ${isVoucher ? field('凭证级别', select('voucherLevel', f.voucherLevel || '0-所有凭证', ['0-所有凭证'], { yellow: true, navType: 'select', buttonGroup: 'q0055-nav', buttonIndex: 1 })) : field('柜员号', input('tellerNo', tellerNo, { yellow: true, navType: 'input', buttonGroup: 'q0055-nav', buttonIndex: 1 }))}
+                            ${field('柜员号', input('targetAccountNo', f.targetAccountNo || tellerNo.slice(-6), { yellow: true, navType: 'input', buttonGroup: 'q0055-nav', buttonIndex: 2 }))}
+                            ${isVoucher ? field('柜员姓名', input('tellerName', f.tellerName || tellerName, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true, buttonGroup: 'q0055-nav', buttonIndex: 3 })) : field('库箱号', input('targetVoucherNo', f.targetVoucherNo || '301000001106', { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true, buttonGroup: 'q0055-nav', buttonIndex: 3 }))}
                         </div>
                         <div class="trade-action-row bank-action-row action-button-column">
-                            <button type="button" class="counter-form-btn" data-tab-action="lookup-0055" data-enter-target="true" data-button-group="submit-exit" data-button-index="0">查询</button>
-                            <button type="button" class="counter-form-btn" data-close-trade="0055" data-enter-target="true" data-button-group="submit-exit" data-button-index="1">退出</button>
+                            <button type="button" class="counter-form-btn" data-tab-action="lookup-0055" data-enter-target="true" data-button-group="q0055-nav" data-button-index="4">查询</button>
+                            <button type="button" class="counter-form-btn" data-close-trade="0055" data-enter-target="true" data-button-group="q0055-nav" data-button-index="5">退出</button>
                         </div>
                         <section class="trade-section-block form-compact-shell" style="margin-top:12px;">
                             <div class="trade-section-title">${isVoucher ? `柜员库箱-${escapeHtml(f.targetVoucherNo || '301000001106')}` : `库箱号：${escapeHtml(f.targetVoucherNo || '301000001106')}`}</div>
@@ -1662,6 +1720,7 @@
 
         function bindTradeStageActions(activeTab) {
             bindUnifiedFocusStateMachine(activeTab);
+            bindFieldChanges(activeTab);
             bindEnterAdvance(tradeStage);
 
             tradeStage.querySelectorAll('[data-close-trade]').forEach(button => {
@@ -1957,12 +2016,10 @@
                     if (firstOpt) {
                         node.value = firstOpt.value;
                         setFormValue(tab.form, node.dataset.field, firstOpt.value);
-                    }
-                    // 展示下拉（如浏览器支持）
-                    if (typeof node.showPicker === 'function') {
-                        try { node.showPicker(); } catch(e) {}
-                    }
-                    return; // 停留在当前字段等待再次回车
+
+                    node.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                return;
                 }
 
             }
@@ -2115,7 +2172,8 @@
 
         function input(name, value = '', options = {}) {
             const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : '', options.cursorReadonly ? 'field-readonly-cursor' : ''].filter(Boolean).join(' ');
-            return `<input data-field="${name}" data-nav-type="${options.navType || (options.enterInclude ? 'readonly-focus' : 'input')}" ${options.required ? 'data-required="true"' : ''} class="${classes}" value="${escapeHtml(value || '')}" ${options.readonly ? 'readonly' : ''} ${options.autofocus ? 'autofocus' : ''} ${options.enterInclude ? 'data-enter-include="true"' : ''} ${options.placeholder ? `placeholder="${escapeHtml(options.placeholder)}"` : ''} ${options.type ? `type="${options.type}"` : 'type="text"'}>`;
+            const bgAttrs = options.buttonGroup != null ? `data-button-group="${options.buttonGroup}" data-button-index="${options.buttonIndex}"` : '';
+            return `<input data-field="${name}" data-nav-type="${options.navType || (options.enterInclude ? 'readonly-focus' : 'input')}" ${options.required ? 'data-required="true"' : ''} class="${classes}" value="${escapeHtml(value || '')}" ${options.readonly ? 'readonly' : ''} ${options.autofocus ? 'autofocus' : ''} ${options.enterInclude ? 'data-enter-include="true"' : ''} ${options.placeholder ? `placeholder="${escapeHtml(options.placeholder)}"` : ''} ${options.type ? `type="${options.type}"` : 'type="text"'} ${bgAttrs}>`;
         }
 
         function select(name, value = '', values = [], options = {}) {
@@ -2667,6 +2725,25 @@
                     attempt0055Lookup(tab);
                     renderTabs();
                     return;
+                case 'start-sign-dialog':
+                    tab.ui.submitStage = 'sign-wait';
+                    tab.ui.submitCountdown = 59;
+                    renderTabs();
+                    (function() {
+                        const signTimer = window.setInterval(() => {
+                            if (tab.ui.submitStage !== 'sign-wait') { window.clearInterval(signTimer); return; }
+                            tab.ui.submitCountdown = Math.max(0, (tab.ui.submitCountdown || 59) - 1);
+                            renderTabs();
+                        }, 1000);
+                        window.setTimeout(() => {
+                            window.clearInterval(signTimer);
+                            if (tab.ui.submitStage === 'sign-wait') {
+                                tab.ui.submitStage = 'receipt-preview';
+                                renderTabs();
+                            }
+                        }, 3000);
+                    })();
+                    return;
                 case 'start-submit-flow':
                     tab.ui.submitStage = 'confirm-wait';
                     tab.ui.submitCountdown = 2;
@@ -3090,7 +3167,7 @@
                 </div>
 
                 <div class="trade-action-row bank-action-row receipt-preview-actions">
-                                      <button type="button" class="counter-form-btn" data-tab-action="open-sign-dialog" data-enter-target="true">签名</button>
+                                      <button type="button" class="counter-form-btn" data-tab-action="start-sign-dialog" data-enter-target="true">签名</button>
                     <button type="button" class="counter-form-btn" disabled data-enter-target="true">附件管理</button>
                     <button type="button" class="counter-form-btn" data-tab-action="finish-submit-flow" data-enter-target="true">提交</button>
                     <button type="button" class="counter-form-btn" data-tab-action="cancel-submit-flow" data-enter-target="true">取消</button>
