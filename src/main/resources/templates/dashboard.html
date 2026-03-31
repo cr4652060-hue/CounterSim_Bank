@@ -544,17 +544,11 @@
         function renderTabs() {
             if (!state.tabs.length) {
                 tabStrip.innerHTML = '<div class="tab-strip-empty bank-tab-empty"></div>';
-                if (state.lastCustomerInfo) {
-                    leftSidebarHost.innerHTML = renderPersistedSidebar(state.lastCustomerInfo);
-                    tradeStage.innerHTML = renderPersistedWorkspace(state.lastCustomerInfo);
-                    tradeStage.querySelector('[data-tab-action="exit-customer"]')
-                        ?.addEventListener('click', () => { state.lastCustomerInfo = null; renderTabs(); });
-                } else {
-                    tradeStage.innerHTML = '<div class="workspace-blank"></div>';
-                    leftSidebarHost.innerHTML = renderSidebarPanel(null);
-                }
+                tradeStage.innerHTML = '<div class="workspace-blank"></div>';
+                leftSidebarHost.innerHTML = renderSidebarPanel(null);
                 return;
             }
+
 
             tabStrip.innerHTML = state.tabs.map(tab => `
                 <div class="trade-tab bank-trade-tab ${tab.id === state.activeTabId ? 'active' : ''}" data-tab-id="${tab.id}">
@@ -878,7 +872,7 @@
         }
 
         function renderTradeBody(tab) {
-            if (['1061', '1062', '1651', '1657'].includes(tab.code) && tab.ui.submitStage === 'receipt-preview') {
+            if (['1061', '1062', '1651', '1657'].includes(tab.code) && ['receipt-preview', 'sign-wait', 'finish-success'].includes(tab.ui.submitStage)) {
                 return renderReceiptPreviewPage(tab);
             }
             switch (tab.code) {
@@ -945,8 +939,9 @@
                                     ${bankCell('证件号码', input('idNo', f.idNo, { gray: true, readonly: true }), { full: true })}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('摘要', select('summary', f.summary, ['', '续存', '现金续存', '客户自存'], { navType: 'select', allowEmpty: true }))}
-                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input' }))}
+                                    ${bankCell('摘要', select('summary', f.summary, ['', '续存', '现金续存', '客户自存'], { navType: 'select', allowEmpty: true, white: true }))}
+                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input', white: true }))}
+
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
                                     ${bankCell('对账簿/折标志', select('ledgerFlag', f.ledgerFlag || '0-元', ['0-元'], { gray: true, readonly: true, navType: 'select' }))}
@@ -1117,11 +1112,11 @@
                                     ${bankCell('证件号码', input('idNo', f.idNo, { gray: true, readonly: true }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
-                                 ${bankCell('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取'], { navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('摘要', select('summary', f.summary, ['', '现金支取', '柜面支取'], { navType: 'select', allowEmpty: true, white: true }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                                <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input' }))}
+                                   ${bankCell('备注', input('notes', f.notes, { navType: 'input', white: true }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-span-left">
                                     ${bankCell('外汇系统业务参号', input('fxBusinessNo', f.fxBusinessNo, { navType: 'input' }), { full: true })}
@@ -1258,8 +1253,9 @@
                                     ${bankCell('利率', input('interestRate', f.interestRate, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('摘要', select('summary', f.summary || '', [''], { navType: 'select', allowEmpty: true }))}
-                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input' }))}
+                                    ${bankCell('摘要', select('summary', f.summary || '', [''], { navType: 'select', allowEmpty: true, white: true }))}
+                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input', white: true }))}
+
                                 </div>
                             </div>
                         </section>
@@ -1289,8 +1285,8 @@
                             <div class="trade-section-title">营销信息</div>
                             <div class="bank-form-rows compact-rows">
                                 <div class="bank-form-row">
-                                    ${bankCell('营销代号', input('marketingCode', f.marketingCode, { navType: 'input' }))}
-                                    ${bankCell('营销人员名称', input('marketingName', f.marketingName, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
+                                    ${bankCell('营销代号', input('marketingCode', f.marketingCode, { write: true,navType: 'input' }))}
+                                    ${bankCell('营销人员名称', input('marketingName', f.marketingName, { write: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
                                 </div>
                             </div>
                         </section>
@@ -1395,8 +1391,8 @@
                                     ${bankCell('外汇系统业务参考号', input('fxBusinessNo', f.fxBusinessNo, { navType: 'input' }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
-                                    ${bankCell('摘要', select('summary', f.summary || '', [''], { navType: 'select', allowEmpty: true }))}
-                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input' }))}
+                                    ${bankCell('摘要', select('summary', f.summary || '', [''], { navType: 'select', allowEmpty: true, white: true }))}
+                                    ${bankCell('备注', input('notes', f.notes, { navType: 'input', white: true }))}
                                     <div class="bank-row-cell bank-row-cell-placeholder"></div>
                                 </div>
                             </div>
@@ -1813,6 +1809,10 @@
                         if (event) {
                             event.preventDefault();
                         }
+                        if (tab.code === '1061' && !tab.ui.customerLoaded && !String(tab.form.amount || '').trim()) {
+                            focusField('amount');
+                            return;
+                        }
                         openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                     };
                     node.addEventListener('click', openDialog);
@@ -1898,11 +1898,14 @@
                         focusNextNode(node);
                     }
                 } else {
+                    if (tab.code === '1061' && !String(tab.form.amount || '').trim()) {
+                        focusField('amount');
+                        return;
+                    }
                     openMediumDialog(tab, tab.code === '1061' ? '1061' : '1062');
                 }
                 return;
             }
-
 
             if (node.dataset.field === 'passbookFlag' && tab.code === '1657') {
                 event.preventDefault();
@@ -1995,13 +1998,16 @@
                 return;
             }
             if (node.dataset.navType === 'password') {
-                // 无论密码是否已填，回车/点击进入密码框都重新弹出输入模拟
                 event.preventDefault();
-                if (!tab.ui.passwordDialogOpen) {
+                if (tab.ui.passwordReady[node.dataset.field]) {
+                    // 密码已输入完毕，回车直接进入下一字段
+                    focusNextNode(node);
+                } else if (!tab.ui.passwordDialogOpen) {
                     openPasswordDialog(tab, node.dataset.field);
                 }
                 return;
             }
+
             if (node.tagName === 'SELECT') {
                 // ── 业务种类特殊处理：必须在通用空值拦截之前 ──
                 if (node.dataset.field === 'businessType' || node.dataset.field === 'verify.businessType') {
@@ -2084,7 +2090,22 @@
                     focusField(targetField);
                     return;
                 }
-                const first = getNavigableNodes().find(node => node.hasAttribute('autofocus')) || getNavigableNodes()[0];
+                // 若存在浮层覆盖（如核查结果弹窗），优先聚焦浮层内的 autofocus 或第一个可用按钮
+                const overlays = tradeStage.querySelectorAll('.trade-overlay');
+                if (overlays.length > 0) {
+                    const topOverlay = overlays[overlays.length - 1];
+                    const overlayTarget = topOverlay.querySelector('[autofocus]')
+                        || topOverlay.querySelector('[data-enter-target="true"]:not([disabled])');
+                    if (overlayTarget) {
+                        overlayTarget.focus();
+                        return;
+                    }
+                }
+                // 普通情况：跳过 entry-anchor 和灰色字段
+                const nodes = getNavigableNodes().filter(n =>
+                    n.dataset.navType !== 'entry-anchor' && !n.classList.contains('field-gray')
+                );
+                const first = nodes.find(n => n.hasAttribute('autofocus')) || nodes[0];
                 if (first) {
                     first.focus();
                     if (first.select) {
@@ -2093,6 +2114,7 @@
                 }
             });
         }
+
 
         function focusField(fieldName) {
             const node = tradeStage.querySelector(`[data-field="${fieldName}"]`);
@@ -2187,13 +2209,13 @@
         }
 
         function input(name, value = '', options = {}) {
-            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : '', options.cursorReadonly ? 'field-readonly-cursor' : ''].filter(Boolean).join(' ');
+            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : '', options.white ? 'field-white' : '', options.cursorReadonly ? 'field-readonly-cursor' : ''].filter(Boolean).join(' ');
             const bgAttrs = options.buttonGroup != null ? `data-button-group="${options.buttonGroup}" data-button-index="${options.buttonIndex}"` : '';
             return `<input data-field="${name}" data-nav-type="${options.navType || (options.enterInclude ? 'readonly-focus' : 'input')}" ${options.required ? 'data-required="true"' : ''} class="${classes}" value="${escapeHtml(value || '')}" ${options.readonly ? 'readonly' : ''} ${options.autofocus ? 'autofocus' : ''} ${options.enterInclude ? 'data-enter-include="true"' : ''} ${options.placeholder ? `placeholder="${escapeHtml(options.placeholder)}"` : ''} ${options.type ? `type="${options.type}"` : 'type="text"'} ${bgAttrs}>`;
         }
 
         function select(name, value = '', values = [], options = {}) {
-            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : ''].filter(Boolean).join(' ');
+            const classes = [options.yellow ? 'field-yellow' : '', options.gray ? 'field-gray' : '', options.white ? 'field-white' : ''].filter(Boolean).join(' ');
             const normalizedValues = values.length ? values : [''];
             return `
                 <select data-field="${name}" data-nav-type="${options.navType || 'select'}" ${options.required ? 'data-required="true"' : ''} ${options.allowEmpty ? 'data-allow-empty="true"' : ''} class="${classes}" ${options.autofocus ? 'autofocus' : ''} ${options.enterInclude ? 'data-enter-include="true"' : ''} ${options.readonly ? 'disabled' : ''}>
@@ -2218,8 +2240,10 @@
             return node
                 && node.offsetParent !== null
                 && !node.disabled
+                && !node.classList.contains('field-gray')
                 && (!node.readOnly || node.dataset.enterInclude === 'true' || node.tagName === 'BUTTON' || specialReadonly);
         }
+
 
         function openMediumDialog(tab, mode) {
             tab.ui.mediumDialogOpen = true;
@@ -2247,7 +2271,8 @@
             if (tab.code === '1062') {
                 tab.ui.nextFocusField = 'mediumNo';
             } else if (tab.code === '1061') {
-                tab.ui.nextFocusField = 'accountNo';
+                // 退出弹窗后焦点回到账号字段，避免重新自动触发介质弹窗
+                tab.ui.nextFocusField = 'feeMode';
             }
             renderTabs();
         }

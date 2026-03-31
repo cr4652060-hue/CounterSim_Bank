@@ -526,6 +526,8 @@ textarea { resize: vertical; min-height: 98px; }
     box-shadow: inset 0 0 0 1px rgba(74, 134, 197, .18), 0 0 0 2px rgba(122, 174, 225, .28);
 }
 .field-yellow { background: #fff79c !important; }
+.field-white { background: #ffffff !important; }
+
 .field-yellow:focus {
     background: #fff17c !important;
 }
