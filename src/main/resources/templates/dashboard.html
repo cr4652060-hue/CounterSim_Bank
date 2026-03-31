@@ -945,7 +945,7 @@
                                     ${bankCell('证件号码', input('idNo', f.idNo, { gray: true, readonly: true }), { full: true })}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('摘要', select('summary', f.summary, ['', '续存', '现金续存', '客户自存'], { navType: 'select' }))}
+                                    ${bankCell('摘要', select('summary', f.summary, ['', '续存', '现金续存', '客户自存'], { navType: 'select', allowEmpty: true }))}
                                     ${bankCell('备注', input('notes', f.notes, { navType: 'input' }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
@@ -1011,6 +1011,9 @@
             const f = tab.form;
             const queryType = f.queryType || '1-现金/现钞';
             const isVoucher = String(queryType).startsWith('2-');
+            // 表格区只在点击"查询"后才切换显示类型
+            const queriedQueryType = tab.ui.queriedQueryType || '1-现金/现钞';
+            const queriedIsVoucher = String(queriedQueryType).startsWith('2-');
             const tellerNo = f.tellerNo || getDisplayTellerCode(state.teller?.tellerCode || '1');
             const tellerName = state.teller?.tellerName || '袁俊玲';
             const cashRows = [
@@ -1043,8 +1046,8 @@
                             <button type="button" class="counter-form-btn" data-close-trade="0055" data-enter-target="true" data-button-group="q0055-nav" data-button-index="5">退出</button>
                         </div>
                         <section class="trade-section-block form-compact-shell" style="margin-top:12px;">
-                            <div class="trade-section-title">${isVoucher ? `柜员库箱-${escapeHtml(f.targetVoucherNo || '301000001106')}` : `库箱号：${escapeHtml(f.targetVoucherNo || '301000001106')}`}</div>
-                            ${isVoucher ? `
+                             <div class="trade-section-title">${queriedIsVoucher ? `柜员库箱-${escapeHtml(f.targetVoucherNo || '301000001106')}` : `库箱号：${escapeHtml(f.targetVoucherNo || '301000001106')}`}</div>
+                            ${queriedIsVoucher ? `
                                 <table class="inventory-table" style="width:100%;border-collapse:collapse;">
                                     <thead><tr><th>序号</th><th>凭证种类</th><th>凭证名称</th><th>凭证起始号</th><th>凭证终止号</th><th>库存数量</th></tr></thead>
                                     <tbody>
@@ -1217,12 +1220,12 @@
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('产品代码', input('productCode', f.productCode || '', ['', '999TD000001-个人整存整取储蓄存款', '999TD000002-个人定活两便储蓄存款','999TD000007-个人通知存款'], { yellow: true, navType: 'input' }))}
-                                    ${bankCell('存期', select('term', f.term || '', ['', '01-3个月', '02-6个月', '03-1年', '04-2年', '05-3年'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('存期', select('term', f.term || '', ['', '01-3个月', '02-6个月', '03-1年', '04-2年', '05-3年'], { yellow: true, navType: 'select' }))}
 
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('转存标志', select('transferFlag', f.transferFlag || '0-不自动转存', ['', '1-自动转存', '0-不自动转存'], { yellow: true, navType: 'select', allowEmpty: true }))}
-                                    ${bankCell('转存方式', select('transferMode', f.transferMode || '', ['', '1-本息转存', '2-本金转存'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('转存标志', select('transferFlag', f.transferFlag || '0-不自动转存', ['', '1-自动转存', '0-不自动转存'], { yellow: true, navType: 'select'}))}
+                                    ${bankCell('转存方式', select('transferMode', f.transferMode || '', ['', '1-本息转存', '2-本金转存'], { yellow: true, navType: 'select'}))}
 
                                 </div>
                                  <div class="bank-form-row bank-form-row-single-left">
@@ -1230,7 +1233,7 @@
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('支取方式', select('withdrawMode', f.withdrawMode || '', ['','1001-凭单（折）密'], { yellow: true, navType: 'select' }))}
-                                    ${bankCell('通存通兑标志', select('interBankFlag', f.interBankFlag || '', ['', '0-不通存通兑','1-通存通兑'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('通存通兑标志', select('interBankFlag', f.interBankFlag || '', ['', '0-不通存通兑','1-通存通兑'], { yellow: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('金额', input('amount', f.amount, { yellow: true, navType: 'input' }))}
@@ -1247,7 +1250,7 @@
                                     ${bankCell('外汇系统业务参号', input('fxBusinessNo', f.fxBusinessNo, { navType: 'input' }))}
                                 </div>
                                 <div class="bank-form-row">
-                                    ${bankCell('利率依据', select('rateType', f.rateType || '', ['', '挂牌利率', '协议利率'], { yellow: true, navType: 'select', allowEmpty: true }))}
+                                    ${bankCell('利率依据', select('rateType', f.rateType || '', ['', '挂牌利率', '协议利率'], { yellow: true, navType: 'select' }))}
                                     ${bankCell('浮动利率加减码符号', select('floatRateSign', f.floatRateSign || '', ['', '+', '-'], { gray: true, readonly: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row">
@@ -1288,15 +1291,6 @@
                                 <div class="bank-form-row">
                                     ${bankCell('营销代号', input('marketingCode', f.marketingCode, { navType: 'input' }))}
                                     ${bankCell('营销人员名称', input('marketingName', f.marketingName, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
-                                </div>
-                            </div>
-                        </section>
-                        <section class="trade-section-block form-compact-shell">
-                            <div class="trade-section-title">账户信息</div>
-                            <div class="bank-form-rows compact-rows">
-                                <div class="bank-form-row">
-                                    ${bankCell('账号', input('accountNo', f.accountNo, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
-                                    ${bankCell('账户余额', input('accountBalance', f.accountBalance, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
                                 </div>
                             </div>
                         </section>
@@ -1353,12 +1347,12 @@
                             <div class="trade-section-title">交易信息</div>
                             <div class="bank-form-rows">
                                 <div class="bank-form-row">
-                                    ${bankCell('支取类别', select('withdrawType', f.withdrawType || '', [''], { yellow: true, navType: 'select' }))}
-                                    ${bankCell('交易类别', select('tradeType', f.tradeType || '', [''], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('支取类别', select('withdrawType', f.withdrawType || '', ['','现金'], { yellow: true, navType: 'select' }))}
+                                    ${bankCell('交易类别', select('tradeType', f.tradeType || '', ['','1-现金','2-转账'], { yellow: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row">
                                     ${bankCell('币种', select('currency', f.currency || '', ['','156-CNY 人民币'], { gray: true, readonly: true, navType: 'select' }))}
-                                    ${bankCell('钞汇标志', select('cashFlag', f.cashFlag || '', [''], { gray: true, readonly: true, navType: 'select' }))}
+                                    ${bankCell('钞汇标志', select('cashFlag', f.cashFlag || '', ['','0-钞','1-汇'], { gray: true, readonly: true, navType: 'select' }))}
                                 </div>
                                 <div class="bank-form-row bank-form-row-single-left">
                                     ${bankCell('未通知本金金额', input('unpaidPrincipal', f.unpaidPrincipal, { gray: true, readonly: true, navType: 'readonly-focus', enterInclude: true }))}
@@ -1730,6 +1724,14 @@
             tradeStage.querySelectorAll('[data-tab-action]').forEach(button => {
                 button.addEventListener('click', () => handleTabAction(activeTab, button.dataset.tabAction, button));
             });
+            // 密码框：点击即重新弹出输入模拟（无论是否已填）
+            tradeStage.querySelectorAll('[data-nav-type="password"]').forEach(pwdNode => {
+                pwdNode.addEventListener('click', () => {
+                    if (!activeTab.ui.passwordDialogOpen) {
+                        openPasswordDialog(activeTab, pwdNode.dataset.field);
+                    }
+                });
+            });
         }
 
         function bindFieldChanges(tab) {
@@ -1762,6 +1764,10 @@
                             if (tab.code !== '3900') {
                                 tab.ui.verifyStage = '';
                             }
+                            // 选择"否"后立即重渲染，清空代理字段显示，焦点回到代理选择框
+                            tab.ui.nextFocusField = 'proxyFlag';
+                            renderTabs();
+                            return;
                         }
                     }
                     if (tab.code === '0055' && (path === 'queryType' || path === 'voucherLevel')) {
@@ -1859,7 +1865,17 @@
                 if (node.dataset.buttonGroup) {
                     event.preventDefault();
                     moveButtonFocus(node.dataset.buttonGroup, event.key === 'ArrowDown' ? 1 : -1);
+                } else if (node.tagName === 'SELECT' && !String(node.value || '').trim()) {
+                    // 空 SELECT：自动选首个非空选项
+                    event.preventDefault();
+                    const firstOpt = Array.from(node.options).find(o => String(o.value || '').trim());
+                    if (firstOpt) {
+                        node.value = firstOpt.value;
+                        setFormValue(tab.form, node.dataset.field, firstOpt.value);
+                        node.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
                 }
+                // 非空 SELECT 不拦截：浏览器自然切换选项，input 事件会同步表单
                 return;
             }
             if (event.key !== 'Enter' || event.shiftKey || event.target.tagName === 'TEXTAREA') {
@@ -1979,12 +1995,12 @@
                 return;
             }
             if (node.dataset.navType === 'password') {
-                const field = node.dataset.field;
-                if (!tab.ui.passwordReady[field]) {
-                    event.preventDefault();
-                    openPasswordDialog(tab, field);
-                    return;
+                // 无论密码是否已填，回车/点击进入密码框都重新弹出输入模拟
+                event.preventDefault();
+                if (!tab.ui.passwordDialogOpen) {
+                    openPasswordDialog(tab, node.dataset.field);
                 }
+                return;
             }
             if (node.tagName === 'SELECT') {
                 // ── 业务种类特殊处理：必须在通用空值拦截之前 ──
@@ -2305,7 +2321,8 @@
                 // 账号确认后焦点停在账号字段（回车可继续往下，不再重新打开弹窗）
                 tab.ui.nextFocusField = 'accountNo';
             } else {
-                tab.ui.nextFocusField = 'password';
+                // 1062：账号确认后焦点停在账（卡）号框，再次回车才进入密码框
+                tab.ui.nextFocusField = 'mediumNo';
             }
             tab.ui.mediumDialogOpen = false;
             tab.ui.mediumDialogError = '';
@@ -2411,6 +2428,8 @@
             tab.form.tellerNo = tab.form.tellerNo || tellerNo;
             tab.form.targetAccountNo = tab.form.targetAccountNo || tellerNo.slice(-6);
             tab.form.targetVoucherNo = tab.form.targetVoucherNo || '301000001106';
+            // 记录本次查询的类型，用于更新库箱表格显示
+            tab.ui.queriedQueryType = String(tab.form.queryType || '1-现金/现钞');
             const queryType = String(tab.form.queryType || '1-现金/现钞').startsWith('2-') ? '2' : '1';
             fetch(`/api/inventory/0055?type=${queryType}`)
                 .then(resp => resp.ok ? resp.json() : null)
@@ -2766,6 +2785,10 @@
                     })();
                     return;
                 case 'submit-success-confirm':
+                    // 客户同意后、签名前，自动更新柜员库箱
+                    if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
+                        settleTradeInventory(tab);
+                    }
                     tab.ui.submitStage = 'sign-wait';
                     tab.ui.submitCountdown = 59;
                     renderTabs();
@@ -2788,10 +2811,10 @@
                     })();
                     return;
                 case 'finish-submit-flow':
-                    // 落库
-                    if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
-                        settleTradeInventory(tab);
-                    }
+                    // // 落库
+                    // if (['1061', '1062', '1651', '1657'].includes(tab.code)) {
+                    //     settleTradeInventory(tab);
+                    // }
                     tab.ui.submitStage = 'finish-success';
                     renderTabs();
                     return;
@@ -3167,7 +3190,7 @@
                 </div>
 
                 <div class="trade-action-row bank-action-row receipt-preview-actions">
-                                      <button type="button" class="counter-form-btn" data-tab-action="start-sign-dialog" data-enter-target="true">签名</button>
+                    <button type="button" class="counter-form-btn" data-tab-action="start-sign-dialog" data-enter-target="true">签名</button>
                     <button type="button" class="counter-form-btn" disabled data-enter-target="true">附件管理</button>
                     <button type="button" class="counter-form-btn" data-tab-action="finish-submit-flow" data-enter-target="true">提交</button>
                     <button type="button" class="counter-form-btn" data-tab-action="cancel-submit-flow" data-enter-target="true">取消</button>
